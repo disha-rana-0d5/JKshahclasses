@@ -1,0 +1,42 @@
+const mongoose = require('mongoose');
+
+const rankHolderSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    image: {
+        type: String,
+        default: '/uploads/placeholder.png'
+    },
+    category: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    globalRank: {
+        type: String,
+        default: "",
+        trim: true
+    },
+    indiaRank: {
+        type: String,
+        default: "",
+        trim: true
+    },
+    course: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    session: {
+        type: String,
+        required: true,
+        trim: true
+    }
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model('RankHolder', rankHolderSchema);
