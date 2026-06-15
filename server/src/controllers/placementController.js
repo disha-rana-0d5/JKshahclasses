@@ -318,6 +318,39 @@ exports.updatePlacementStatus = async (req, res) => {
         });
     }
 };
+
+// @desc    Update placement (Full update)
+// @route   PUT /api/placements/:id
+// @access  Private (Admin)
+exports.updatePlacement = async (req, res) => {
+    try {
+        let placement = await Placement.findById(req.params.id);
+
+        if (!placement) {
+            return res.status(404).json({
+                success: false,
+                message: 'Placement not found'
+            });
+        }
+
+        placement = await Placement.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            data: placement
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
+    }
+};
 // @desc    Get all job applications (Admin)
 // @route   GET /api/placements/applications
 // @access  Private (Admin)

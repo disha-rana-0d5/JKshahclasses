@@ -7,7 +7,8 @@ import {
     Mail,
     Phone,
     Briefcase,
-    Download
+    Download,
+    Trash2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +42,19 @@ export function CareerApplicationManagement() {
             toast.error("Export failed");
         } finally {
             setExportLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Are you sure you want to delete this application?")) return;
+        try {
+            const { ok } = await careerApi.deleteApplication(id);
+            if (ok) {
+                toast.success("Application deleted");
+                fetchApplications();
+            }
+        } catch (error) {
+            toast.error("Failed to delete application");
         }
     };
 
@@ -86,7 +100,8 @@ export function CareerApplicationManagement() {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-medium text-gray-700">{app.postApplied}</span>
-                                            {app.listingId && <span className="text-[10px] text-primary">{app.listingId.title}</span>}
+                                            {app.category && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-sm w-fit mt-0.5 font-semibold tracking-wider uppercase">{app.category}</span>}
+                                            {app.listingId && <span className="text-[10px] text-primary mt-0.5">{app.listingId.title}</span>}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -96,9 +111,18 @@ export function CareerApplicationManagement() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <a href={app.resumeUrl?.startsWith('http') ? app.resumeUrl : `${FRONTEND_URL}${app.resumeUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20">
-                                            <FileText className="w-3.5 h-3.5" /> View
-                                        </a>
+                                        <div className="flex justify-end gap-2">
+                                            <a href={app.resumeUrl?.startsWith('http') ? app.resumeUrl : `${FRONTEND_URL}${app.resumeUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20">
+                                                <FileText className="w-3.5 h-3.5" /> View
+                                            </a>
+                                            <button
+                                                onClick={() => handleDelete(app._id)}
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                title="Delete Application"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))

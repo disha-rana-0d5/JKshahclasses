@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getOrders, updateOrder } = require('../controllers/orderController');
-// const { protect, admin } = require('../middleware/authMiddleware'); // Assuming we have these
+const { getOrders, updateOrder, createOrder, getMyOrders } = require('../controllers/orderController');
+const { protect } = require('../middleware/authMiddleware');
 
 router.route('/')
-    .get(getOrders);
+    .get(getOrders)
+    .post(createOrder);
+
+router.get('/myorders', protect, getMyOrders);
 
 router.route('/:id')
     .put(updateOrder);

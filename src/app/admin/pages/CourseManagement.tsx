@@ -52,7 +52,7 @@ export function CourseManagement() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [editingCourse, setEditingCourse] = useState<Course | null>(null);
     const [currentStep, setCurrentStep] = useState(1);
-    const totalSteps = 5;
+    const totalSteps = 4;
 
     // Delete Confirmation State
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -254,10 +254,10 @@ export function CourseManagement() {
             facultyRating: 4.8,
             facultyBio: "",
             courseFeatures: [],
-            whatYouLearn: [],
             whoShouldEnroll: [],
             reviewsList: [],
             videos: [],
+            demoVideos: [],
             brochureUrl: "",
             metaTitle: "",
             metaDescription: "",
@@ -269,7 +269,7 @@ export function CourseManagement() {
 
     const handleOpenEdit = (course: Course) => {
         setEditingCourse(course);
-        setFormData({ ...course, videos: course.videos || [] });
+        setFormData({ ...course, videos: course.videos || [], demoVideos: course.demoVideos || [] });
         setCurrentStep(1);
         setIsAddDialogOpen(true);
     };
@@ -541,8 +541,8 @@ export function CourseManagement() {
                             {/* Progress Bar Background */}
                             <div className="absolute top-4 left-0 w-full h-0.5 bg-muted-foreground/20 -z-10" />
 
-                            {[1, 2, 3, 4, 5].map((step) => {
-                                const labels = ["Basic Info", "Details", "Faculty", "Reviews", "Videos"];
+                            {[1, 2, 3, 4].map((step) => {
+                                const labels = ["Basic Info", "Details", "Faculty", "Demo Video"];
                                 const isClickable = !!editingCourse;
                                 const isActive = currentStep >= step;
                                 const isCurrent = currentStep === step;
@@ -969,110 +969,36 @@ export function CourseManagement() {
                             {currentStep === 4 && (
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-sm font-semibold">Student Reviews</h3>
+                                        <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                                            Course Demo Videos 
+                                            <span className="text-xs text-muted-foreground font-normal">(Max 4)</span>
+                                        </h3>
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
+                                            disabled={formData.demoVideos && formData.demoVideos.length >= 4}
                                             onClick={() => setFormData({
                                                 ...formData,
-                                                reviewsList: [...(formData.reviewsList || []), { name: "", rating: 5, text: "", achievement: "", date: new Date().toLocaleDateString(), image: "" }]
+                                                demoVideos: [...(formData.demoVideos || []), { title: "", url: "", description: "" }]
                                             })}
                                         >
-                                            <Plus className="mr-2 h-4 w-4" /> Add Review
+                                            <Plus className="mr-2 h-4 w-4" /> Add Demo Video
                                         </Button>
                                     </div>
 
-                                    {formData.reviewsList?.map((review, rIdx) => (
-                                        <div key={rIdx} className="bg-muted/30 p-4 rounded-lg space-y-4 border border-border">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <Input
-                                                    className="bg-white"
-                                                    value={review.name}
-                                                    onChange={(e) => {
-                                                        const newReviews = [...(formData.reviewsList || [])];
-                                                        newReviews[rIdx].name = e.target.value;
-                                                        setFormData({ ...formData, reviewsList: newReviews });
-                                                    }}
-                                                    placeholder="Student Name"
-                                                />
-                                                <div className="flex items-center gap-2">
-                                                    <Label className="text-xs">Rating</Label>
-                                                    <Input
-                                                        type="number"
-                                                        max={5}
-                                                        min={1}
-                                                        step="0.1"
-                                                        className="bg-white w-20"
-                                                        value={review.rating}
-                                                        onChange={(e) => {
-                                                            const newReviews = [...(formData.reviewsList || [])];
-                                                            newReviews[rIdx].rating = Number(e.target.value);
-                                                            setFormData({ ...formData, reviewsList: newReviews });
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <Input
-                                                className="bg-white"
-                                                value={review.achievement}
-                                                onChange={(e) => {
-                                                    const newReviews = [...(formData.reviewsList || [])];
-                                                    newReviews[rIdx].achievement = e.target.value;
-                                                    setFormData({ ...formData, reviewsList: newReviews });
-                                                }}
-                                                placeholder="Achievement (e.g., Cleared CA Inter)"
-                                            />
-                                            <Textarea
-                                                className="bg-white"
-                                                value={review.text}
-                                                onChange={(e) => {
-                                                    const newReviews = [...(formData.reviewsList || [])];
-                                                    newReviews[rIdx].text = e.target.value;
-                                                    setFormData({ ...formData, reviewsList: newReviews });
-                                                }}
-                                                placeholder="Review content..."
-                                                rows={2}
-                                            />
-                                            <div className="flex justify-end">
-                                                <Button type="button" variant="ghost" size="sm" onClick={() => setFormData({ ...formData, reviewsList: formData.reviewsList?.filter((_, i) => i !== rIdx) })}>
-                                                    <Trash2 className="h-4 w-4 text-destructive mr-2" /> Remove Review
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {currentStep === 5 && (
-                                <div className="space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-sm font-semibold">Course Introduction Videos</h3>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setFormData({
-                                                ...formData,
-                                                videos: [...(formData.videos || []), { title: "", url: "", description: "" }]
-                                            })}
-                                        >
-                                            <Plus className="mr-2 h-4 w-4" /> Add Video
-                                        </Button>
-                                    </div>
-
-                                    {formData.videos?.map((video, vIdx) => (
+                                    {formData.demoVideos?.map((video, vIdx) => (
                                         <div key={vIdx} className="bg-muted/30 p-4 rounded-lg space-y-4 border border-border">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <Label className="text-xs">Video Title</Label>
                                                     <Input
                                                         className="bg-white"
-                                                        value={video.title}
+                                                        value={video.title || ""}
                                                         onChange={(e) => {
-                                                            const newVideos = [...(formData.videos || [])];
+                                                            const newVideos = [...(formData.demoVideos || [])];
                                                             newVideos[vIdx].title = e.target.value;
-                                                            setFormData({ ...formData, videos: newVideos });
+                                                            setFormData({ ...formData, demoVideos: newVideos });
                                                         }}
                                                         placeholder="e.g., Introduction to CA Course"
                                                     />
@@ -1081,11 +1007,11 @@ export function CourseManagement() {
                                                     <Label className="text-xs">Video URL (YouTube/Vimeo)</Label>
                                                     <Input
                                                         className="bg-white"
-                                                        value={video.url}
+                                                        value={video.url || ""}
                                                         onChange={(e) => {
-                                                            const newVideos = [...(formData.videos || [])];
+                                                            const newVideos = [...(formData.demoVideos || [])];
                                                             newVideos[vIdx].url = e.target.value;
-                                                            setFormData({ ...formData, videos: newVideos });
+                                                            setFormData({ ...formData, demoVideos: newVideos });
                                                         }}
                                                         placeholder="https://www.youtube.com/embed/..."
                                                     />
@@ -1097,25 +1023,25 @@ export function CourseManagement() {
                                                     className="bg-white"
                                                     value={video.description || ""}
                                                     onChange={(e) => {
-                                                        const newVideos = [...(formData.videos || [])];
+                                                        const newVideos = [...(formData.demoVideos || [])];
                                                         newVideos[vIdx].description = e.target.value;
-                                                        setFormData({ ...formData, videos: newVideos });
+                                                        setFormData({ ...formData, demoVideos: newVideos });
                                                     }}
                                                     placeholder="Brief description of the video content..."
                                                     rows={2}
                                                 />
                                             </div>
                                             <div className="flex justify-end">
-                                                <Button type="button" variant="ghost" size="sm" onClick={() => setFormData({ ...formData, videos: formData.videos?.filter((_, i) => i !== vIdx) })}>
+                                                <Button type="button" variant="ghost" size="sm" onClick={() => setFormData({ ...formData, demoVideos: formData.demoVideos?.filter((_, i) => i !== vIdx) })}>
                                                     <Trash2 className="h-4 w-4 text-destructive mr-2" /> Remove Video
                                                 </Button>
                                             </div>
                                         </div>
                                     ))}
-                                    {(!formData.videos || formData.videos.length === 0) && (
+                                    {(!formData.demoVideos || formData.demoVideos.length === 0) && (
                                         <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border rounded-lg bg-muted/10">
                                             <Video className="h-8 w-8 text-muted-foreground mb-2" />
-                                            <p className="text-sm text-muted-foreground">No videos added yet. These will be shown in a carousel on the details page.</p>
+                                            <p className="text-sm text-muted-foreground">No demo videos added yet. These will be shown in the course overview section.</p>
                                         </div>
                                     )}
                                 </div>

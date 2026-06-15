@@ -37,12 +37,12 @@ export function TimelineManagement() {
         });
     }, [currentPage]);
 
-    // Sub-categories are categories that have a parent
-    const subCategories = categories.filter(c => c.parent);
+    // All categories (some courses only have a main category without sub-categories)
+    const availableCategories = categories;
 
     const handleOpenAdd = () => {
         setFormData({
-            subCategory: subCategories[0]?.name || "",
+            subCategory: availableCategories[0]?.name || "",
             image: "/placeholder.png"
         });
         setIsAddDialogOpen(true);
@@ -77,7 +77,7 @@ export function TimelineManagement() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-foreground">Course Timeline Management</h2>
-                    <p className="text-muted-foreground">Manage the visual journey maps for different course sub-categories.</p>
+                    <p className="text-muted-foreground">Manage the visual journey maps for different course categories and sub-categories.</p>
                 </div>
                 <Button onClick={handleOpenAdd}>
                     <Plus className="mr-2 h-4 w-4" /> Add/Update Timeline
@@ -89,7 +89,7 @@ export function TimelineManagement() {
                 <div className="text-sm text-blue-800">
                     <p className="font-bold mb-1">Upload Guidelines:</p>
                     <ul className="list-disc ml-4 space-y-1">
-                        <li>Only <strong>one timeline</strong> image is allowed per sub-category. Adding a new one will replace the existing one.</li>
+                        <li>Only <strong>one timeline</strong> image is allowed per category/sub-category. Adding a new one will replace the existing one.</li>
                         <li>Recommended dimensions: <strong>1200 x 600 px</strong> (or 2:1 aspect ratio).</li>
                         <li>Format: JPG, PNG or WebP (max 2MB).</li>
                     </ul>
@@ -101,7 +101,7 @@ export function TimelineManagement() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[150px]">Preview</TableHead>
-                            <TableHead>Sub-Category</TableHead>
+                            <TableHead>Category / Sub-Category</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -187,22 +187,22 @@ export function TimelineManagement() {
                     <DialogHeader>
                         <DialogTitle>Add/Update Course Timeline</DialogTitle>
                         <DialogDescription>
-                            Select a sub-category and upload its journey timeline image.
+                            Select a category or sub-category and upload its journey timeline image.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-6 py-4">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="subCategory">Select Sub-Category</Label>
+                                <Label htmlFor="subCategory">Select Category / Sub-Category</Label>
                                 <Select
                                     value={formData.subCategory}
                                     onValueChange={(val) => setFormData({ ...formData, subCategory: val })}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select sub-category" />
+                                        <SelectValue placeholder="Select category/sub-category" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {subCategories.map((cat) => (
+                                        {availableCategories.map((cat) => (
                                             <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
                                         ))}
                                     </SelectContent>

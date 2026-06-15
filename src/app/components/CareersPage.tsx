@@ -12,7 +12,8 @@ import {
     Upload,
     ArrowLeft,
     CheckCircle2,
-    Loader2
+    Loader2,
+    X
 } from "lucide-react";
 import { careerApi } from "../api/api";
 
@@ -28,6 +29,7 @@ export default function CareersPage() {
         name: "",
         email: "",
         phone: "",
+        category: "",
         postApplied: "",
         resumeUrl: ""
     });
@@ -84,7 +86,7 @@ export default function CareersPage() {
             setTimeout(() => {
                 setShowApplyModal(false);
                 setSuccessMessage("");
-                setFormData({ name: "", email: "", phone: "", postApplied: "", resumeUrl: "" });
+                setFormData({ name: "", email: "", phone: "", category: "", postApplied: "", resumeUrl: "" });
             }, 3000);
         }
         setFormLoading(false);
@@ -269,13 +271,27 @@ export default function CareersPage() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <label className="text-sm font-medium text-gray-500 uppercase tracking-tighter">Post Applied</label>
+                                            <label className="text-sm font-medium text-gray-500 uppercase tracking-tighter">Category</label>
+                                            <select
+                                                required
+                                                className="w-full py-2 bg-transparent border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium appearance-none"
+                                                value={formData.category}
+                                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                            >
+                                                <option value="" disabled>Select Category</option>
+                                                <option value="Academic">Academic</option>
+                                                <option value="Non-Academic">Non-Academic</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-1 md:col-span-2">
+                                            <label className="text-sm font-medium text-gray-500 uppercase tracking-tighter">Post Applied For</label>
                                             <input
                                                 type="text"
                                                 required
                                                 className="w-full py-2 bg-transparent border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium"
                                                 value={formData.postApplied}
-                                                placeholder="e.g. Teaching"
+                                                placeholder="e.g. Math Faculty or Admin"
                                                 onChange={(e) => setFormData({ ...formData, postApplied: e.target.value })}
                                             />
                                         </div>
@@ -337,7 +353,7 @@ export default function CareersPage() {
                             onClick={() => setShowApplyModal(false)}
                             className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 transition-colors"
                         >
-                            <ArrowLeft className="w-6 h-6 text-gray-400 rotate-180" />
+                            <X className="w-6 h-6 text-gray-400" />
                         </button>
 
                         <div className="flex items-center gap-2 mb-2">
@@ -359,7 +375,7 @@ export default function CareersPage() {
                                     onClick={() => setShowApplyModal(false)}
                                     className="text-[#373081] font-bold hover:underline"
                                 >
-                                    Close Dialog
+                                    OK
                                 </button>
                             </div>
                         ) : (
@@ -370,7 +386,7 @@ export default function CareersPage() {
                                         <input
                                             type="text"
                                             required
-                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium cursor-not-allowed"
+                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
@@ -381,7 +397,7 @@ export default function CareersPage() {
                                         <input
                                             type="email"
                                             required
-                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium cursor-not-allowed"
+                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium"
                                             value={formData.email}
                                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         />
@@ -392,7 +408,7 @@ export default function CareersPage() {
                                         <input
                                             type="tel"
                                             required
-                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium cursor-not-allowed"
+                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium"
                                             value={formData.phone}
                                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         />
@@ -404,7 +420,7 @@ export default function CareersPage() {
                                             type="text"
                                             required
                                             readOnly
-                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium cursor-not-allowed"
+                                            className="w-full py-2 bg-gray-50 border-b border-gray-200 focus:border-[#373081] outline-none transition-colors text-gray-900 font-medium"
                                             value={formData.postApplied}
                                         />
                                     </div>

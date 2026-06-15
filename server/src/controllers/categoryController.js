@@ -35,7 +35,9 @@ exports.addCategory = async (req, res) => {
     try {
         const {
             name, description, parent, slug, metaTitle, metaDescription, metaKeywords,
-            whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, sequence
+            whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, 
+            whyPoints, whyJKShahPoints, sequence,
+            bannerTitle, bannerSubtitle, bannerBadges, bannerBadgeIcons, bannerStats
         } = req.body;
 
         const category = await Category.create({
@@ -47,11 +49,17 @@ exports.addCategory = async (req, res) => {
             metaDescription: metaDescription || "",
             metaKeywords: metaKeywords || "",
             whyTitle: whyTitle || "",
-            whyTitle: whyTitle || "",
             whyContent: whyContent || "",
             whyJKShahTitle: whyJKShahTitle || "",
             whyJKShahContent: whyJKShahContent || "",
-            sequence: sequence || 0
+            whyPoints: whyPoints || ["", "", "", "", "", "", ""],
+            whyJKShahPoints: whyJKShahPoints || ["", "", "", "", "", "", ""],
+            sequence: sequence || 0,
+            bannerTitle: bannerTitle || "",
+            bannerSubtitle: bannerSubtitle || "",
+            bannerBadges: bannerBadges || ["", "", ""],
+            bannerBadgeIcons: bannerBadgeIcons || ["", "", ""],
+            bannerStats: bannerStats || [{value: "", label: ""}, {value: "", label: ""}, {value: "", label: ""}]
         });
 
         res.status(201).json({
@@ -77,17 +85,34 @@ exports.addCategory = async (req, res) => {
 // @access  Private (Admin)
 exports.updateCategory = async (req, res) => {
     try {
+        const oldCategory = await Category.findById(req.params.id);
+        if (!oldCategory) {
+            return res.status(404).json({ success: false, message: 'Category not found' });
+        }
+
+        const oldName = oldCategory.name;
+        const newName = req.body.name;
+        const isNameChanged = newName && oldName !== newName;
+
         const category = await Category.findByIdAndUpdate(
             req.params.id,
             { $set: req.body },
             { new: true, runValidators: true }
         );
 
-        if (!category) {
-            return res.status(404).json({
-                success: false,
-                message: 'Category not found'
-            });
+        // Cascade updates if the name was changed
+        if (isNameChanged) {
+            if (!category.parent) {
+                // It's a Main Category
+                await Course.updateMany({ category: oldName }, { $set: { category: newName } });
+                await RankHolder.updateMany({ category: oldName }, { $set: { category: newName } });
+            } else {
+                // It's a Sub-Category
+                await Course.updateMany({ subCategory: oldName }, { $set: { subCategory: newName } });
+                await RankHolder.updateMany({ subCategory: oldName }, { $set: { subCategory: newName } });
+                await CareerOpportunity.updateMany({ subCategory: oldName }, { $set: { subCategory: newName } });
+                await CourseTimeline.updateMany({ subCategory: oldName }, { $set: { subCategory: newName } });
+            }
         }
 
         res.status(200).json({
@@ -95,6 +120,7 @@ exports.updateCategory = async (req, res) => {
             data: category
         });
     } catch (error) {
+        console.error('Error in updateCategory:', error);
         res.status(500).json({
             success: false,
             message: 'Server Error'

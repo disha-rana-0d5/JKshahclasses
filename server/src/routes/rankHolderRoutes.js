@@ -29,5 +29,6 @@ router.post('/', rankHolderController.addRankHolder);
 router.post('/bulk', uploadCSV.single('file'), rankHolderController.bulkUploadRankHolders);
 router.put('/:id', rankHolderController.updateRankHolder);
 router.delete('/:id', rankHolderController.deleteRankHolder);
+router.delete('/', rankHolderController.deleteAllRankHolders);
 
 module.exports = router;

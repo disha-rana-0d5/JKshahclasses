@@ -117,19 +117,23 @@ export function CourseVideos() {
                                 </TableCell>
                                 <TableCell>
                                     {course.videos && course.videos.length > 0 ? (
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-sm font-medium">{course.videos[0].title}</span>
-                                            {course.videos[0].description && (
-                                                <span className="text-xs text-muted-foreground truncate max-w-[250px]" title={course.videos[0].description}>
-                                                    {course.videos[0].description}
-                                                </span>
-                                            )}
-                                            <a href={course.videos[0].url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline truncate max-w-[200px]">
-                                                {course.videos[0].url}
-                                            </a>
+                                        <div className="flex flex-col gap-3">
+                                            {course.videos.map((video, vIdx) => (
+                                                <div key={vIdx} className="flex flex-col gap-0.5 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
+                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Video {vIdx + 1}: {video.title}</span>
+                                                    {video.description && (
+                                                        <span className="text-xs text-muted-foreground truncate max-w-[250px]" title={video.description}>
+                                                            {video.description}
+                                                        </span>
+                                                    )}
+                                                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline truncate max-w-[200px]">
+                                                        {video.url}
+                                                    </a>
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
-                                        <span className="text-xs text-muted-foreground">No video set</span>
+                                        <span className="text-xs text-muted-foreground">No videos set</span>
                                     )}
                                 </TableCell>
                                 <TableCell className="text-right">

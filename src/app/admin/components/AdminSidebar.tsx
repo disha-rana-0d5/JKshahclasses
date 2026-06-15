@@ -12,7 +12,8 @@ import {
     Briefcase,
     ClipboardList,
     PenTool,
-    Image
+    Image,
+    TrendingUp
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -48,11 +49,26 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
                 { id: "levels", label: "Levels", path: "levels" },
                 { id: "timelines", label: "Manage Timelines", path: "timelines" },
                 { id: "career-opps", label: "Career Opportunities", path: "career-opps" },
+                { id: "alumni-work-at", label: "Alumni Work At (Logos)", path: "alumni-work-at" },
+                { id: "erp-courses", label: "ERP Courses", path: "erp-courses" },
             ]
 
         },
+        // {
+        //     id: "product-group",
+        //     label: "Product",
+        //     icon: ShoppingCart,
+        //     subItems: [
+        //         { id: "product-categories", label: "Category", path: "product-categories" },
+        //         { id: "product-subcategories", label: "Sub Category", path: "product-subcategories" },
+        //         // { id: "product-attributes", label: "Attributes (Subjects)", path: "product-attributes" },
+        //         { id: "product-faculty", label: "Faculty", path: "product-faculty" },
+        //         { id: "products", label: "Add Product", path: "products" },
+        //     ]
+        // },
         { id: "users", label: "User Management", icon: Users },
         { id: "orders", label: "Orders & Payments", icon: ShoppingCart },
+        { id: "alumni", label: "Alumni Management", icon: GraduationCap },
         {
             id: "content-group",
             label: "CMS & Content",
@@ -65,6 +81,7 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
                 { id: "faculty", label: "Faculty Management", path: "faculty" },
             ]
         },
+        { id: "announcements", label: "Announcements", icon: Bell },
         { id: "blogs", label: "Blog Management", icon: PenTool },
         { id: "media", label: "Media Library", icon: Image },
         {
@@ -85,10 +102,10 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
                 { id: "career-applications", label: "View Applications", path: "career-applications" }
             ]
         },
-        { id: "reports", label: "Reports & Notifications", icon: Bell },
+        { id: "reports", label: "Analytics & Reports", icon: TrendingUp },
     ];
 
-    const [expandedItems, setExpandedItems] = useState<string[]>(["courses-group"]);
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
     const toggleExpand = (id: string) => {
         setExpandedItems(prev =>

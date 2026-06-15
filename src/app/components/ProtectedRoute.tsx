@@ -18,8 +18,9 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
     }
 
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-        // If user role is not allowed, redirect to home
-        return <Navigate to="/" replace />;
+        // If user role is not allowed, redirect to appropriate login page to switch account
+        const isAdminRoute = location.pathname.startsWith("/admin");
+        return <Navigate to={isAdminRoute ? "/admin/login" : "/login"} replace />;
     }
 
     return <>{children}</>;

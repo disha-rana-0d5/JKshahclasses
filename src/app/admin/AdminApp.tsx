@@ -6,6 +6,7 @@ import { UserManagement } from "./pages/UserManagement";
 import { OrderManagement } from "./pages/OrderManagement";
 import { LandingPageManagement } from "./pages/LandingPageManagement";
 import { Reports } from "./pages/Reports";
+import { AnnouncementManagement } from "./pages/AnnouncementManagement";
 import { CategoryManagement } from "./pages/CategoryManagement";
 import { SubCategoryManagement } from "./pages/SubCategoryManagement";
 import { LevelManagement } from "./pages/LevelManagement";
@@ -25,6 +26,14 @@ import { MediaManagement } from "./pages/MediaManagement";
 import { CareerListingManagement } from "./pages/CareerListingManagement";
 import { CareerApplicationManagement } from "./pages/CareerApplicationManagement";
 import { BranchEnquiryManagement } from "./pages/BranchEnquiryManagement";
+import { AlumniManagement } from "./pages/AlumniManagement";
+import { AlumniWorkAtManagement } from "./pages/AlumniWorkAtManagement";
+import { ProductManagement } from "./pages/ProductManagement";
+import { ProductFacultyManagement } from "./pages/ProductFacultyManagement";
+import { ProductCategoryManagement } from "./pages/ProductCategoryManagement";
+import { ProductSubCategoryManagement } from "./pages/ProductSubCategoryManagement";
+import { ProductAttributeManagement } from "./pages/ProductAttributeManagement";
+import { ERPCoursesManagement } from "./pages/ERPCoursesManagement";
 
 import { Button } from "../components/ui/button";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -59,6 +68,14 @@ export function AdminApp() {
                 <Route path="applications" element={<JobApplicationManagement />} />
                 <Route path="career-listings" element={<CareerListingManagement />} />
                 <Route path="career-applications" element={<CareerApplicationManagement />} />
+                <Route path="alumni" element={<AlumniManagement />} />
+                <Route path="alumni-work-at" element={<AlumniWorkAtManagement />} />
+                <Route path="products" element={<ProductManagement />} />
+                <Route path="product-faculty" element={<ProductFacultyManagement />} />
+                <Route path="product-categories" element={<ProductCategoryManagement />} />
+                <Route path="product-subcategories" element={<ProductSubCategoryManagement />} />
+                <Route path="product-attributes" element={<ProductAttributeManagement />} />
+                <Route path="erp-courses" element={<ERPCoursesManagement />} />
 
 
                 <Route path="faculty" element={<FacultyManagement />} />
@@ -70,6 +87,7 @@ export function AdminApp() {
                 <Route path="branch-enquiries" element={<BranchEnquiryManagement />} />
                 <Route path="media" element={<MediaManagement />} />
                 <Route path="blogs" element={<BlogManagement />} />
+                <Route path="announcements" element={<AnnouncementManagement />} />
                 <Route path="reports" element={<Reports />} />
             </Routes>
         </AdminLayout>

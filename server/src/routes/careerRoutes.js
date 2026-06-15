@@ -12,5 +12,6 @@ router.post('/admin', careerController.addOrUpdateListing);
 router.delete('/admin/:id', careerController.deleteListing);
 router.get('/applications', careerController.getApplications);
 router.get('/applications/export', careerController.exportApplications);
+router.delete('/applications/:id', careerController.deleteApplication);
 
 module.exports = router;

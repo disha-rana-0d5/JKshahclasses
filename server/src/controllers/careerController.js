@@ -99,6 +99,7 @@ exports.exportApplications = async (req, res) => {
             { label: 'Name', value: 'name' },
             { label: 'Email', value: 'email' },
             { label: 'Phone', value: 'phone' },
+            { label: 'Category', value: 'category' },
             { label: 'Post Applied', value: 'postApplied' },
             { label: 'Job Listing', value: (row) => row.listingId ? row.listingId.title : 'N/A' },
             { label: 'Resume URL', value: 'resumeUrl' },
@@ -109,6 +110,17 @@ exports.exportApplications = async (req, res) => {
         res.header('Content-Type', 'text/csv');
         res.attachment(`Career_Applications_${new Date().toISOString().split('T')[0]}.csv`);
         res.status(200).send(csv);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+// @desc    Delete career application
+// @route   DELETE /api/careers/applications/:id
+// @access  Private/Admin
+exports.deleteApplication = async (req, res) => {
+    try {
+        await CareerApplication.findByIdAndDelete(req.params.id);
+        res.status(200).json({ success: true, message: 'Application deleted' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

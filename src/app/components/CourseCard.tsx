@@ -101,7 +101,7 @@ export function CourseCard({
               </span>
             )}
           </div>
-          <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 px-3">
+          <Button size="sm" disabled className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 px-3 cursor-not-allowed opacity-70">
             Enroll
           </Button>
         </div>

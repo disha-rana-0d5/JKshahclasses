@@ -30,7 +30,7 @@ export function FooterManagement() {
                         description: 'Professional education platform empowering students in CA, CS, CMA courses with expert guidance.',
                         contactInfo: {
                             address: 'Multiple locations across Mumbai, Delhi, Bangalore, Pune, India',
-                            phone: '+91 123 456 7890',
+                            phone: '+91 9757111333',
                             email: 'info@jkshah.com'
                         },
                         quickLinks: [

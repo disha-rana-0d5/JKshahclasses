@@ -17,7 +17,8 @@ import {
     Send,
     Building2,
     Upload,
-    Trash2
+    Trash2,
+    Edit2
 } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -28,6 +29,7 @@ export function PlacementManagement() {
     const [statusFilter, setStatusFilter] = useState("All");
     const [isPostJobModalOpen, setIsPostJobModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState(null);
 
     // Post Job Form State
     const [jobForm, setJobForm] = useState({
@@ -38,7 +40,8 @@ export function PlacementManagement() {
         remuneration: "",
         contactEmail: "",
         companyPage: "",
-        applicationFormUrl: ""
+        applicationFormUrl: "",
+        designation: ""
     });
 
     useEffect(() => {
@@ -58,6 +61,22 @@ export function PlacementManagement() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleEdit = (p) => {
+        setEditingId(p._id);
+        setJobForm({
+            firmName: p.firmName || "",
+            location: p.location || "",
+            domainKnowledge: p.domainKnowledge || "",
+            preferredCandidate: p.preferredCandidate || "",
+            remuneration: p.remuneration || "",
+            contactEmail: p.contactEmail || "",
+            companyPage: p.companyPage || "",
+            applicationFormUrl: p.applicationFormUrl || "",
+            designation: p.designation || ""
+        });
+        setIsPostJobModalOpen(true);
     };
 
     const handleStatusUpdate = async (id, status) => {
@@ -95,10 +114,17 @@ export function PlacementManagement() {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            const response = await placementApi.createPlacement({ ...jobForm, status: "Verified" });
+            let response;
+            if (editingId) {
+                response = await placementApi.updatePlacement(editingId, jobForm);
+            } else {
+                response = await placementApi.createPlacement({ ...jobForm, status: "Verified" });
+            }
+
             if (response.ok) {
-                toast.success("Job achievement added successfully!");
+                toast.success(editingId ? "Job achievement updated successfully!" : "Job achievement added successfully!");
                 setIsPostJobModalOpen(false);
+                setEditingId(null);
                 setJobForm({
                     firmName: "",
                     location: "",
@@ -107,11 +133,12 @@ export function PlacementManagement() {
                     remuneration: "",
                     contactEmail: "",
                     companyPage: "",
-                    applicationFormUrl: ""
+                    applicationFormUrl: "",
+                    designation: ""
                 });
                 fetchAdminPlacements();
             } else {
-                toast.error(response.data.message || "Failed to add job achievement");
+                toast.error(response.data.message || "Operation failed");
             }
         } catch (error) {
             console.error("Job post error:", error);
@@ -121,9 +148,26 @@ export function PlacementManagement() {
         }
     };
 
-    const filteredPlacements = statusFilter === "All"
-        ? placements
-        : placements.filter(p => p.status === statusFilter);
+    const getDaysRemaining = (expiryDate) => {
+        const diff = new Date(expiryDate).getTime() - new Date().getTime();
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        return days;
+    };
+
+    const filteredPlacements = placements.filter(p => {
+        const isExpired = new Date(p.expiresAt) < new Date();
+
+        if (statusFilter === "All") return true;
+        if (statusFilter === "Expired") return isExpired;
+
+        // If filtering by other statuses, we generally want to exclude expired ones 
+        // OR show them if they match status? User requested a separate tab.
+        // Let's make tabs mutually exclusive: Expired tab shows ALL expired.
+        // Other tabs show non-expired items with that status.
+        if (isExpired) return false;
+
+        return p.status === statusFilter;
+    });
 
     return (
         <div className="p-6">
@@ -135,7 +179,7 @@ export function PlacementManagement() {
 
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex bg-gray-100 p-1 rounded-lg">
-                        {["All", "Pending", "Verified", "Rejected"].map((f) => (
+                        {["All", "Pending", "Verified", "Rejected", "Expired"].map((f) => (
                             <button
                                 key={f}
                                 onClick={() => setStatusFilter(f)}
@@ -146,7 +190,21 @@ export function PlacementManagement() {
                             </button>
                         ))}
                     </div>
-                    <Button onClick={() => setIsPostJobModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
+                    <Button onClick={() => { 
+                        setEditingId(null); 
+                        setJobForm({ 
+                            firmName: "", 
+                            location: "", 
+                            domainKnowledge: "", 
+                            preferredCandidate: "", 
+                            remuneration: "", 
+                            contactEmail: "", 
+                            companyPage: "", 
+                            applicationFormUrl: "", 
+                            designation: "" 
+                        }); 
+                        setIsPostJobModalOpen(true); 
+                    }} className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
                         <PlusCircle className="w-4 h-4" />
                         Add Job Achievement
                     </Button>
@@ -163,13 +221,14 @@ export function PlacementManagement() {
                                 <th className="px-6 py-4">Role & Pay</th>
                                 <th className="px-6 py-4">Candidate Profile</th>
                                 <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Expiry</th>
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                    <td colSpan={7} className="px-6 py-12 text-center">
                                         <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
                                         <span className="text-sm text-gray-400">Loading placements...</span>
                                     </td>
@@ -185,6 +244,9 @@ export function PlacementManagement() {
                                         <td className="px-6 py-4 align-top">
                                             <div className="flex flex-col gap-1">
                                                 <span className="font-semibold text-gray-900">{p.firmName}</span>
+                                                {p.designation && (
+                                                    <span className="text-[10px] text-primary font-bold">{p.designation}</span>
+                                                )}
                                                 <span className="flex items-center gap-1 text-xs text-gray-500">
                                                     <MapPin className="w-3 h-3" /> {p.location}
                                                 </span>
@@ -207,6 +269,24 @@ export function PlacementManagement() {
                                                 }`}>
                                                 {p.status}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 align-top">
+                                            {(() => {
+                                                const days = getDaysRemaining(p.expiresAt);
+                                                if (days <= 0) {
+                                                    return <span className="text-[10px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase">Expired</span>;
+                                                }
+                                                return (
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-[10px] font-medium ${days <= 5 ? 'text-amber-600' : 'text-gray-600'}`}>
+                                                            {days} days left
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400">
+                                                            {new Date(p.expiresAt).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 align-top text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -240,6 +320,14 @@ export function PlacementManagement() {
                                                 </Button>
                                                 <Button
                                                     size="sm"
+                                                    onClick={() => handleEdit(p)}
+                                                    className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
                                                     onClick={() => handleDelete(p._id)}
                                                     className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100"
                                                     title="Delete"
@@ -252,7 +340,7 @@ export function PlacementManagement() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center text-gray-500">
+                                    <td colSpan={7} className="px-6 py-20 text-center text-gray-500">
                                         No placements found.
                                     </td>
                                 </tr>
@@ -267,7 +355,7 @@ export function PlacementManagement() {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="text-lg font-bold text-slate-900">Add Job Achievement</h3>
+                            <h3 className="text-lg font-bold text-slate-900">{editingId ? "Edit Job Achievement" : "Add Job Achievement"}</h3>
                             <button onClick={() => setIsPostJobModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                                 <X className="w-6 h-6" />
                             </button>
@@ -296,6 +384,15 @@ export function PlacementManagement() {
                                             placeholder="e.g. Navi Mumbai, Remote"
                                         />
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="designation">Designation</Label>
+                                    <Input
+                                        id="designation"
+                                        value={jobForm.designation}
+                                        onChange={(e) => setJobForm({ ...jobForm, designation: e.target.value })}
+                                        placeholder="e.g. Articled Assistant, Faculty, etc."
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -364,7 +461,7 @@ export function PlacementManagement() {
                                     </Button>
                                     <Button type="submit" disabled={isSubmitting} className="flex-1 bg-primary text-white">
                                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                                        Add Achievement
+                                        {editingId ? "Update Achievement" : "Add Achievement"}
                                     </Button>
                                 </div>
                             </form>

@@ -13,8 +13,6 @@ export function Footer({ onNavigate }: FooterProps) {
   const location = useLocation();
   const [content, setContent] = useState<any>(null);
 
-  const isHomePage = location.pathname === "/";
-
   useEffect(() => {
     const fetchContent = async () => {
       try {
@@ -37,7 +35,7 @@ export function Footer({ onNavigate }: FooterProps) {
     description: 'Professional education platform empowering students in CA, CS, CMA courses with expert guidance.',
     contactInfo: {
       address: 'Multiple locations across Mumbai, Delhi, Bangalore, Pune, India',
-      phone: '+91 123 456 7890',
+      phone: '+91 9757111333',
       email: 'info@jkshah.com'
     },
     quickLinks: [
@@ -84,7 +82,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
   return (
     <footer className="bg-gradient-to-br from-foreground to-foreground/95 text-white">
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isHomePage ? 'pb-16' : ''}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {/* About Section */}
           <div>

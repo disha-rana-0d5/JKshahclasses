@@ -35,7 +35,10 @@ export function LoginPage() {
                 localStorage.setItem("user", JSON.stringify(data));
                 toast.success("Logged in successfully!");
 
-                const from = location.state?.from?.pathname || "/";
+                let from = "/";
+                if (location.state?.from) {
+                    from = typeof location.state.from === "string" ? location.state.from : location.state.from.pathname || "/";
+                }
                 navigate(from, { replace: true });
             } else {
                 toast.error(data.message || "Invalid credentials");

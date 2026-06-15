@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { placementApi, BASE_URL } from "../api/api";
 import { ClientPagination } from "./ClientPagination";
 import { Button } from "./ui/button";
@@ -22,6 +23,14 @@ import {
 } from "lucide-react";
 
 export function PlacementsPage() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isAuthenticated = !!token && user?.role === "student";
+
     const [placements, setPlacements] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -92,15 +101,9 @@ export function PlacementsPage() {
     };
 
     const handleApply = (placement) => {
-        const token = localStorage.getItem("token");
-        const userStr = localStorage.getItem("user");
-        const user = userStr ? JSON.parse(userStr) : null;
-        const isAuthenticated = !!token && user?.role === "student";
-
         if (!isAuthenticated) {
             toast.error("Please login as a student to apply for jobs");
-            // Optionally redirect to login
-            // navigate("/login", { state: { from: location.pathname } });
+            navigate("/login", { state: { from: location.pathname } });
             return;
         }
 
@@ -109,6 +112,11 @@ export function PlacementsPage() {
     };
 
     const handleViewDetails = (placement) => {
+        if (!isAuthenticated) {
+            toast.error("Please login to view job details");
+            navigate("/login", { state: { from: location.pathname } });
+            return;
+        }
         setSelectedPlacement(placement);
         setIsViewModalOpen(true);
     };
@@ -224,6 +232,9 @@ export function PlacementsPage() {
                                     <div className="flex justify-between items-start gap-3">
                                         <div className="flex flex-col gap-1">
                                             <h4 className="font-bold text-slate-900 leading-snug">{p.firmName}</h4>
+                                            {p.designation && (
+                                                <div className="text-[10px] text-primary font-semibold">{p.designation}</div>
+                                            )}
                                             <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
                                                 <Calendar className="w-3 h-3" />
                                                 {new Date(p.dateOfNotice).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -241,12 +252,12 @@ export function PlacementsPage() {
                                             <p className="text-xs text-slate-700 leading-relaxed italic line-clamp-3">{p.domainKnowledge}</p>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-1.5">
+                                            <div className={`flex items-center gap-1.5 ${!isAuthenticated ? "blur-[4px] select-none opacity-60" : ""}`}>
                                                 <Banknote className="w-3.5 h-3.5 text-green-600" />
-                                                <span className="text-xs font-bold text-slate-800">{p.remuneration}</span>
+                                                <span className="text-xs font-bold text-slate-800">{isAuthenticated ? p.remuneration : "XXXXX - XXXXX"}</span>
                                             </div>
                                             {p.companyPage && (
-                                                <a href={p.companyPage} target="_blank" rel="noopener noreferrer" className="text-primary text-[10px] font-bold flex items-center gap-1">
+                                                <a href={isAuthenticated ? p.companyPage : "#"} target={isAuthenticated ? "_blank" : undefined} rel={isAuthenticated ? "noopener noreferrer" : undefined} onClick={(e) => { if (!isAuthenticated) { e.preventDefault(); handleViewDetails(p); } }} className={`text-primary text-[10px] font-bold flex items-center gap-1 ${!isAuthenticated ? "blur-[3px] select-none opacity-60 cursor-pointer" : ""}`}>
                                                     Website <ExternalLink className="w-2.5 h-2.5" />
                                                 </a>
                                             )}
@@ -260,7 +271,7 @@ export function PlacementsPage() {
                                         <Button
                                             variant="outline"
                                             onClick={() => handleViewDetails(p)}
-                                            className="flex-1 h-11 text-xs border-slate-200 text-slate-600 rounded-xl"
+                                            className={`flex-1 h-11 text-xs border-slate-200 text-slate-600 rounded-xl ${!isAuthenticated ? "blur-[3px] opacity-70" : ""}`}
                                         >
                                             View Details
                                         </Button>
@@ -282,6 +293,7 @@ export function PlacementsPage() {
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date of Notice</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Firm / Company</th>
+                                            <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Designation</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Details</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Candidate Profile</th>
                                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Action</th>
@@ -304,10 +316,15 @@ export function PlacementsPage() {
                                                             {p.location}
                                                         </span>
                                                         {p.companyPage && (
-                                                            <a href={p.companyPage} target="_blank" rel="noopener noreferrer" className="text-primary text-[10px] hover:underline flex items-center gap-0.5 mt-1">
+                                                            <a href={isAuthenticated ? p.companyPage : "#"} target={isAuthenticated ? "_blank" : undefined} rel={isAuthenticated ? "noopener noreferrer" : undefined} onClick={(e) => { if (!isAuthenticated) { e.preventDefault(); handleViewDetails(p); } }} className={`text-primary text-[10px] hover:underline flex items-center gap-0.5 mt-1 ${!isAuthenticated ? "blur-[3px] select-none opacity-60 cursor-pointer" : ""}`}>
                                                                 View Company Page <ExternalLink className="w-2.5 h-2.5" />
                                                             </a>
                                                         )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 align-top">
+                                                    <div className="text-sm font-medium text-slate-900">
+                                                        {p.designation || "N/A"}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 align-top max-w-md">
@@ -316,9 +333,9 @@ export function PlacementsPage() {
                                                             <span className="text-[10px] uppercase font-bold text-slate-400">Domain</span>
                                                             <span className="text-xs text-slate-700 line-clamp-2">{p.domainKnowledge}</span>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                        <div className={`flex items-center gap-1.5 mt-1 ${!isAuthenticated ? "blur-[4px] select-none opacity-60" : ""}`}>
                                                             <Banknote className="w-3.5 h-3.5 text-green-500" />
-                                                            <span className="text-xs font-medium text-slate-700">{p.remuneration}</span>
+                                                            <span className="text-xs font-medium text-slate-700">{isAuthenticated ? p.remuneration : "XXXXX - XXXXX"}</span>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -341,7 +358,7 @@ export function PlacementsPage() {
                                                     </div>
                                                     <button
                                                         onClick={() => handleViewDetails(p)}
-                                                        className="absolute bottom-1 right-2 text-[9px] text-primary hover:underline font-medium opacity-70 hover:opacity-100 transition-opacity"
+                                                        className={`absolute bottom-1 right-2 text-[9px] text-primary hover:underline font-medium transition-opacity ${!isAuthenticated ? "blur-[3px] opacity-50" : "opacity-70 hover:opacity-100"}`}
                                                     >
                                                         View details
                                                     </button>
@@ -382,6 +399,15 @@ export function PlacementsPage() {
                                             {selectedPlacement?.firmName}
                                         </div>
                                     </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Designation</span>
+                                        <div className="text-slate-900 font-semibold pt-1">
+                                            {selectedPlacement?.designation || "N/A"}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-50">
                                     <div className="space-y-1">
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Location</span>
                                         <div className="flex items-center gap-2 text-slate-700">

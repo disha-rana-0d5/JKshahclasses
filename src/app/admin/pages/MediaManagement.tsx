@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
-import { Upload, Copy, Check, Image as ImageIcon, FileText, Trash2 } from "lucide-react";
+import { Upload, Copy, Check, Image as ImageIcon, FileText, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
+import { Input } from "../../components/ui/input";
 
 import { BASE_URL } from "../../api/api";
 
@@ -18,6 +19,12 @@ export function MediaManagement() {
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    const filteredFiles = uploadedFiles.filter(file =>
+        file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.url.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     // Helper to construct full URL
     const getFullUrl = (relativePath: string) => {
@@ -214,13 +221,26 @@ export function MediaManagement() {
             </div>
 
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Media Files ({uploadedFiles.length})</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 className="text-xl font-semibold">
+                        {searchQuery ? `Media Files (${filteredFiles.length} found)` : `Media Files (${uploadedFiles.length})`}
+                    </h2>
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search media by name..."
+                            className="pl-9 bg-white"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                </div>
 
                 {isLoading ? (
                     <div className="text-center py-10 text-muted-foreground">Loading media...</div>
-                ) : uploadedFiles.length > 0 ? (
+                ) : filteredFiles.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {uploadedFiles.map((file, idx) => (
+                        {filteredFiles.map((file, idx) => (
                             <div key={idx} className="bg-white p-4 rounded-lg border border-border shadow-sm flex items-center gap-4 relative group">
                                 <div className="h-16 w-16 rounded-md bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
                                     {file.type === "image" ? (
@@ -264,7 +284,7 @@ export function MediaManagement() {
                     </div>
                 ) : (
                     <div className="text-center py-10 text-muted-foreground bg-slate-50 rounded-lg">
-                        No media files uploaded yet.
+                        {searchQuery ? "No matching media files found." : "No media files uploaded yet."}
                     </div>
                 )}
             </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { blogApi } from "../api/api";
-import { Loader2, Calendar, User, ChevronLeft } from "lucide-react";
+import { Loader2, Calendar, User, ChevronLeft, Clock, Share2 } from "lucide-react";
+import { motion } from "motion/react";
 import { Button } from "./ui/button";
 import { BlogSidebar } from "./BlogSidebar";
 
@@ -106,56 +107,72 @@ export function BlogDetailPage() {
     if (!blog) return null;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header / Hero */}
-            <div className="bg-primary pt-24 pb-12 px-4">
-                <div className="max-w-7xl mx-auto">
-                    <Button
-                        variant="ghost"
-                        className="text-white hover:bg-white/10 mb-4 h-8 px-2"
-                        onClick={() => navigate("/blog")
-                        }
+        <div className="min-h-screen bg-white pb-20 font-sans">
+            {/* Minimalist Header */}
+            <div className="bg-white pt-28 pb-12 px-4 border-b border-gray-100">
+                <div className="max-w-4xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
                     >
-                        <ChevronLeft className="h-4 w-4 mr-1" /> Back to Blog
-                    </Button >
-                    <div className="text-center md:text-left">
-                        <div className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mb-3">
-                            {blog.category?.name || "Uncategorized"}
-                        </div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
-                            {blog.title}
-                        </h1>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-white/80 text-xs">
-                            <span className="flex items-center gap-1.5">
-                                <Calendar className="h-3.5 w-3.5" />
-                                {new Date(blog.createdAt).toLocaleDateString()}
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                <User className="h-3.5 w-3.5" />
-                                {blog.author || "Admin"}
-                            </span>
-                        </div>
-                    </div>
-                </div >
-            </div >
+                        <Button
+                            variant="ghost"
+                            className="text-gray-500 hover:text-primary mb-8 h-8 px-0 flex items-center gap-1 group"
+                            onClick={() => navigate("/blog")}
+                        >
+                            <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to stories
+                        </Button>
 
-            <div className="max-w-7xl mx-auto px-4 mt-[-30px]">
-                <div className="flex flex-col lg:flex-row gap-8">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-primary">
+                                <span>{blog.category?.name || "Article"}</span>
+                            </div>
+
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-serif text-gray-900 leading-[1.1] tracking-tight">
+                                {blog.title}
+                            </h1>
+
+                            <div className="flex items-center justify-between py-6 border-y border-gray-100 mt-8">
+                                <div className="flex items-center gap-4">
+                                    <p className="text-sm font-serif italic text-gray-500">
+                                        {new Date(blog.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="ghost" size="icon" className="rounded-full text-gray-400 hover:text-primary">
+                                        <Share2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 mt-12 mb-20">
+                <div className="flex flex-col lg:flex-row gap-16">
                     {/* Main Content */}
-                    <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="aspect-[21/9] w-full overflow-hidden">
-                            <img
-                                src={blog.image}
-                                alt={blog.title}
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <div className="p-6 md:p-10">
-                            <div
-                                className="prose prose-sm md:prose-base max-w-none prose-primary"
-                                dangerouslySetInnerHTML={{ __html: blog.description }}
-                            />
-                        </div>
+                    <div className="flex-1">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="space-y-12"
+                        >
+                            <div className="aspect-[21/10] w-full overflow-hidden rounded-2xl shadow-sm border border-gray-100">
+                                <img
+                                    src={blog.image}
+                                    alt={blog.title}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="max-w-3xl mx-auto">
+                                <div
+                                    className="prose prose-lg md:prose-xl max-w-none prose-gray font-serif prose-headings:font-serif prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-img:rounded-2xl"
+                                    dangerouslySetInnerHTML={{ __html: blog.description }}
+                                />
+                            </div>
+                        </motion.div>
                     </div>
 
                     {/* Sidebar */}

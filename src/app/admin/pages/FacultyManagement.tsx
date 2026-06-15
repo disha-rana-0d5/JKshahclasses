@@ -4,7 +4,7 @@ import { Input } from "../../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 
-import { Plus, Pencil, Trash2, Search, MoreHorizontal, Filter, Save, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, MoreHorizontal, Filter, Save, Loader2, Download, Upload } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
@@ -82,6 +82,11 @@ export function FacultyManagement() {
 
     // Course Categories State (for Expertise mapping)
     const [courseCategories, setCourseCategories] = useState<{ _id: string, name: string }[]>([]);
+
+    // Bulk Upload State
+    const [isBulkDialogVisible, setIsBulkDialogVisible] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadFile, setUploadFile] = useState<File | null>(null);
 
     const handlePageChange = (page: number) => {
         setPagination(prev => ({ ...prev, page }));
@@ -269,6 +274,25 @@ export function FacultyManagement() {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (confirm("WARNING: This will delete ALL faculty members. This action cannot be undone. Are you sure?")) {
+            try {
+                setIsLoading(true);
+                const { ok, data } = await facultyApi.deleteAllFaculties();
+                if (ok && data.success) {
+                    toast.success("All faculty members deleted successfully");
+                    fetchFaculties();
+                } else {
+                    toast.error(data?.message || "Failed to delete all faculty members");
+                }
+            } catch (err: any) {
+                toast.error(err.message || "An error occurred during bulk deletion");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -306,6 +330,52 @@ export function FacultyManagement() {
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const { ok, data } = await facultyApi.exportFaculties();
+            if (ok && data) {
+                const url = window.URL.createObjectURL(new Blob([data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'faculty_template.csv');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } else {
+                toast.error("Failed to download template");
+            }
+        } catch (err) {
+            toast.error("Error downloading template");
+        }
+    };
+
+    const handleBulkUpload = async () => {
+        if (!uploadFile) {
+            toast.error("Please select a file first");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+
+        try {
+            setIsUploading(true);
+            const { ok, data } = await facultyApi.bulkUploadFaculties(formData);
+            if (ok && data.success) {
+                toast.success(data.message || "Bulk upload successful");
+                fetchFaculties();
+                setIsBulkDialogVisible(false);
+                setUploadFile(null);
+            } else {
+                toast.error(data?.message || "Bulk upload failed");
+            }
+        } catch (err: any) {
+            toast.error(err.message || "An error occurred during upload");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     return (
         <div className="space-y-6 pb-20">
             <div className="flex items-center justify-between">
@@ -334,7 +404,14 @@ export function FacultyManagement() {
                         </div>
 
                         <div className="flex items-center gap-2">
-
+                            <Button variant="outline" onClick={() => setIsBulkDialogVisible(true)}>
+                                <Upload className="mr-2 h-4 w-4" /> Bulk Upload
+                            </Button>
+                            {facultyList.length > 0 && (
+                                <Button variant="destructive" onClick={handleDeleteAll}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete All
+                                </Button>
+                            )}
                             <Button onClick={handleOpenAdd}>
                                 <Plus className="mr-2 h-4 w-4" /> Add Faculty
                             </Button>
@@ -774,6 +851,82 @@ export function FacultyManagement() {
                     <DialogFooter className="p-6 border-t">
                         <Button type="submit" form="faculty-form" className="w-full">
                             {editingFaculty ? "Update Faculty" : "Add Faculty"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Upload Dialog */}
+            <Dialog open={isBulkDialogVisible} onOpenChange={setIsBulkDialogVisible}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Bulk Upload Faculty</DialogTitle>
+                        <DialogDescription>
+                            Upload a CSV file to bulk create or update faculty members.
+                            Use the template for correct format.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        <div className="space-y-2">
+                            <Label>1. Download Template</Label>
+                            <p className="text-xs text-muted-foreground mb-2">
+                                Get the current faculty list as a CSV to use as a template.
+                            </p>
+                            <Button variant="outline" size="sm" onClick={handleDownloadTemplate} className="w-full">
+                                <Download className="mr-2 h-4 w-4" /> Download Template / Export
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t">
+                            <Label>2. Upload CSV File</Label>
+                            <div className="flex flex-col gap-4">
+                                <div
+                                    className="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => document.getElementById('csv-upload')?.click()}
+                                >
+                                    <Upload className="h-8 w-8 text-muted-foreground" />
+                                    <span className="text-sm font-medium">
+                                        {uploadFile ? uploadFile.name : "Click to select CSV file"}
+                                    </span>
+                                    <input
+                                        id="csv-upload"
+                                        type="file"
+                                        accept=".csv"
+                                        className="hidden"
+                                        onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                                {uploadFile && (
+                                    <div className="flex items-center justify-between bg-muted/50 p-2 rounded px-3">
+                                        <span className="text-xs truncate max-w-[300px]">{uploadFile.name}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0"
+                                            onClick={() => setUploadFile(null)}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-[11px] text-amber-800">
+                            <p className="font-semibold mb-1">Important Notes:</p>
+                            <ul className="list-disc pl-4 space-y-1">
+                                <li>Leave `_id` blank to create a new faculty member.</li>
+                                <li>Keep `_id` unchanged to update an existing record.</li>
+                                <li>For array fields (`coursesTaught`, `qualifications`, `achievements`), use semicolons (;) to separate items.</li>
+                                <li>Required fields: name, designation, expertise.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBulkDialogVisible(false)}>Cancel</Button>
+                        <Button onClick={handleBulkUpload} disabled={!uploadFile || isUploading}>
+                            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Start Upload
                         </Button>
                     </DialogFooter>
                 </DialogContent>

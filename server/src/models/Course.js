@@ -21,7 +21,7 @@ const courseSchema = new mongoose.Schema({
     },
     subCategory: {
         type: String,
-        required: [true, 'Please select a sub-category']
+        default: ''
     },
     level: {
         type: String,
@@ -54,7 +54,7 @@ const courseSchema = new mongoose.Schema({
     },
     facultyName: {
         type: String,
-        required: [true, 'Please add faculty name']
+        default: ''
     },
     facultyImage: {
         type: String,
@@ -159,7 +159,15 @@ const courseSchema = new mongoose.Schema({
             date: { type: String, default: () => new Date().toLocaleDateString() },
             text: { type: String, required: true },
             achievement: { type: String, default: '' },
-            image: { type: String, default: '/uploads/placeholder.png' }
+        }],
+        default: []
+    },
+    demoVideos: {
+        type: [{
+            title: String,
+            url: String,
+            description: String,
+            thumbnail: String
         }],
         default: []
     },
@@ -167,7 +175,8 @@ const courseSchema = new mongoose.Schema({
         type: [{
             title: String,
             url: String,
-            description: String
+            description: String,
+            thumbnail: String
         }],
         default: []
     },

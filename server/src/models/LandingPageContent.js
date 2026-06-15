@@ -5,46 +5,78 @@ const landingPageContentSchema = new mongoose.Schema({
     announcements: { type: [String], default: ['Welcome to JK Shah Classes - India\'s Leading CA Coaching Institute!'] },
     showAnnouncement: { type: Boolean, default: true },
     hero: {
-        badge: { type: String, default: 'Top Ranked Institute 2024' },
-        title: { type: String, default: "Master CA, CS & CMA with India's Leading Coaching Institute" },
-        description: { type: String, default: "50,000+ successful professionals started here. Expert faculty, proven methodology, and comprehensive support for your career transformation." },
+        badge: { type: String, default: "Student's preferred choice." },
+        title: { type: String, default: "Built Around Students. Proven by Results. Trusted for Careers." },
+        description: { type: String, default: "Expert mentors. Structured learning. Proven outcomes across every commerce milestone. Trusted by 5 Lakh+ Commerce professionals and counting." },
         ctaDemoText: { type: String, default: 'Watch Demo Class' },
         ctaCoursesText: { type: String, default: 'View Courses' },
+        brochureUrl: { type: String, default: '' },
         videos: {
             type: [{
                 thumbnail: { type: String },
-                videoUrl: { type: String }
+                videoUrl: { type: String },
+                badge: { type: String },
+                title: { type: String },
+                description: { type: String },
+                ctaDemoText: { type: String },
+                ctaCoursesText: { type: String },
+                quickInfo: {
+                    type: [{
+                        label: { type: String },
+                        value: { type: String }
+                    }],
+                    default: [
+                        { label: 'Next Batch', value: 'Starts Monday' },
+                        { label: 'Seats', value: '15 Left Only' }
+                    ]
+                },
+                stats: {
+                    type: [{
+                        label: { type: String },
+                        value: { type: String }
+                    }],
+                    default: [
+                        { value: '40+', label: 'Years Experience' },
+                        { value: '50K+', label: 'Students' },
+                        { value: '450+', label: 'Rank Holders' }
+                    ]
+                }
             }],
             default: [
-                { thumbnail: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800', videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI' },
-                { thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800', videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI' },
-                { thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800', videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI' },
-                { thumbnail: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800', videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI' },
-                { thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800', videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI' }
+                {
+                    thumbnail: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+                    videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                    quickInfo: [{ label: 'Next Batch', value: 'Coming Soon' }, { label: 'Seats', value: 'Limited' }],
+                    stats: [{ value: '40+', label: 'Years' }, { value: '50K+', label: 'Students' }, { value: '450+', label: 'Ranks' }]
+                },
+                {
+                    thumbnail: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+                    videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                    quickInfo: [{ label: 'Next Batch', value: 'Coming Soon' }, { label: 'Seats', value: 'Limited' }],
+                    stats: [{ value: '40+', label: 'Years' }, { value: '50K+', label: 'Students' }, { value: '450+', label: 'Ranks' }]
+                },
+                {
+                    thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+                    videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                    quickInfo: [{ label: 'Next Batch', value: 'Coming Soon' }, { label: 'Seats', value: 'Limited' }],
+                    stats: [{ value: '40+', label: 'Years' }, { value: '50K+', label: 'Students' }, { value: '450+', label: 'Ranks' }]
+                },
+                {
+                    thumbnail: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+                    videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                    quickInfo: [{ label: 'Next Batch', value: 'Coming Soon' }, { label: 'Seats', value: 'Limited' }],
+                    stats: [{ value: '40+', label: 'Years' }, { value: '50K+', label: 'Students' }, { value: '450+', label: 'Ranks' }]
+                },
+                {
+                    thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+                    videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                    quickInfo: [{ label: 'Next Batch', value: 'Coming Soon' }, { label: 'Seats', value: 'Limited' }],
+                    stats: [{ value: '40+', label: 'Years' }, { value: '50K+', label: 'Students' }, { value: '450+', label: 'Ranks' }]
+                }
             ]
         },
         videoCaption: { type: String, default: 'Live & Recorded Classes Available' },
-        stats: {
-            type: [{
-                value: { type: String },
-                label: { type: String }
-            }],
-            default: [
-                { value: '98%', label: 'Success Rate' },
-                { value: '50K+', label: 'Students' },
-                { value: '450+', label: 'Rank Holders' }
-            ]
-        },
-        quickInfo: {
-            type: [{
-                label: { type: String },
-                value: { type: String }
-            }],
-            default: [
-                { label: 'Next Batch', value: 'Jan 15, 2024' },
-                { label: 'Limited Seats', value: '45 Left' }
-            ]
-        }
+        programs: { type: [String], default: ['CA Foundation', 'CA Intermediate', 'CA Final', 'CS Foundation'] }
     },
     // popularPrograms: {
     //     title: { type: String, default: 'Popular Programs' },
@@ -54,7 +86,7 @@ const landingPageContentSchema = new mongoose.Schema({
     //     ]
     // },
     onlineExperience: {
-        badge: { type: String, default: 'Premium Online Learning' },
+        badge: { type: String, default: 'Premium Learning' },
         title: { type: String, default: 'Legacy Coaching, Modern Delivery' },
         description: { type: String, default: 'Experience the perfect blend of our 40+ years of teaching excellence with cutting-edge technology.' },
         features: [
@@ -176,8 +208,8 @@ const landingPageContentSchema = new mongoose.Schema({
     },
     footerCta: {
         title: { type: String, default: 'Ready to Begin Your Success Story?' },
-        description: { type: String, default: 'Join 50,000+ students and start your professional journey today' },
-        demoButtonText: { type: String, default: 'Book Free Demo' },
+        description: { type: String, default: 'Join 500,000+ students building their professional future.' },
+        demoButtonText: { type: String, default: '1-1 counselling' },
         brochureButtonText: { type: String, default: 'Download Brochure' },
         brochureUrl: { type: String }
     },
@@ -185,7 +217,7 @@ const landingPageContentSchema = new mongoose.Schema({
         description: { type: String, default: 'Professional education platform empowering students in CA, CS, CMA courses with expert guidance.' },
         contactInfo: {
             address: { type: String, default: 'Multiple locations across Mumbai, Delhi, Bangalore, Pune, India' },
-            phone: { type: String, default: '+91 123 456 7890' },
+            phone: { type: String, default: '+91 9757111333' },
             email: { type: String, default: 'info@jkshah.com' }
         },
         quickLinks: {
@@ -272,7 +304,10 @@ const landingPageContentSchema = new mongoose.Schema({
             facilities: [String],
             courses: [String],
             faculties: [String],
-            students: { type: String }
+            students: { type: String },
+            metaTitle: { type: String },
+            metaDescription: { type: String },
+            metaKeywords: { type: String }
         }],
         default: [
             {

@@ -8,6 +8,7 @@ const {
     getApplications,
     exportApplications,
     updatePlacementStatus,
+    updatePlacement,
     deletePlacement
 } = require('../controllers/placementController');
 
@@ -21,6 +22,7 @@ router.get('/admin', getAdminPlacements);
 router.get('/applications/export', exportApplications);
 router.get('/applications', getApplications);
 router.patch('/:id/status', updatePlacementStatus);
+router.put('/:id', updatePlacement);
 router.delete('/:id', deletePlacement);
 
 module.exports = router;

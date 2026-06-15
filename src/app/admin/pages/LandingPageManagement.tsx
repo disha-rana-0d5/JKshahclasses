@@ -108,14 +108,63 @@ export function LandingPageManagement() {
                 if (!fetchedContent.hero.videos || fetchedContent.hero.videos.length === 0) {
                     fetchedContent.hero.videos = Array(5).fill(null).map(() => ({
                         thumbnail: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
-                        videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI'
+                        videoUrl: 'https://www.youtube.com/watch?v=3V1NGxcVdkI',
+                        badge: fetchedContent.hero.badge || "Student's preferred choice.",
+                        title: fetchedContent.hero.title || "Built Around Students. Proven by Results. Trusted for Careers.",
+                        description: fetchedContent.hero.description || "Expert mentors. Structured learning. Proven outcomes across every commerce milestone.",
+                        ctaDemoText: fetchedContent.hero.ctaDemoText || 'Watch Demo Class',
+                        ctaCoursesText: fetchedContent.hero.ctaCoursesText || 'View Courses',
+                        quickInfo: fetchedContent.hero.quickInfo || [
+                            { label: 'Next Batch', value: 'Starts Monday' },
+                            { label: 'Seats', value: '15 Left Only' }
+                        ],
+                        stats: fetchedContent.hero.stats || [
+                            { value: '40+', label: 'Years Experience' },
+                            { value: '50K+', label: 'Students' },
+                            { value: '450+', label: 'Rank Holders' }
+                        ]
                     }));
-                } else if (fetchedContent.hero.videos.length < 5) {
-                    const extra = Array(5 - fetchedContent.hero.videos.length).fill(null).map(() => ({
-                        thumbnail: '',
-                        videoUrl: ''
+                } else {
+                    // Update existing videos with default values if missing new fields
+                    fetchedContent.hero.videos = fetchedContent.hero.videos.map((v: any) => ({
+                        ...v,
+                        badge: v.badge || fetchedContent.hero.badge || "Student's preferred choice.",
+                        title: v.title || fetchedContent.hero.title || "Built Around Students. Proven by Results. Trusted for Careers.",
+                        description: v.description || fetchedContent.hero.description || "Expert mentors. Structured learning. Proven outcomes across every commerce milestone.",
+                        ctaDemoText: v.ctaDemoText || fetchedContent.hero.ctaDemoText || 'Watch Demo Class',
+                        ctaCoursesText: v.ctaCoursesText || fetchedContent.hero.ctaCoursesText || 'View Courses',
+                        quickInfo: v.quickInfo || [
+                            { label: 'Next Batch', value: 'Starts Monday' },
+                            { label: 'Seats', value: '15 Left Only' }
+                        ],
+                        stats: v.stats || fetchedContent.hero.stats || [
+                            { value: '40+', label: 'Years Experience' },
+                            { value: '50K+', label: 'Students' },
+                            { value: '450+', label: 'Rank Holders' }
+                        ]
                     }));
-                    fetchedContent.hero.videos = [...fetchedContent.hero.videos, ...extra];
+
+                    if (fetchedContent.hero.videos.length < 5) {
+                        const extra = Array(5 - fetchedContent.hero.videos.length).fill(null).map(() => ({
+                            thumbnail: '',
+                            videoUrl: '',
+                            badge: fetchedContent.hero.badge || '',
+                            title: fetchedContent.hero.title || '',
+                            description: fetchedContent.hero.description || '',
+                            ctaDemoText: fetchedContent.hero.ctaDemoText || '',
+                            ctaCoursesText: fetchedContent.hero.ctaCoursesText || '',
+                            quickInfo: [
+                                { label: 'Next Batch', value: 'Starts Monday' },
+                                { label: 'Seats', value: '15 Left Only' }
+                            ],
+                            stats: [
+                                { value: '40+', label: 'Years Experience' },
+                                { value: '50K+', label: 'Students' },
+                                { value: '450+', label: 'Rank Holders' }
+                            ]
+                        }));
+                        fetchedContent.hero.videos = [...fetchedContent.hero.videos, ...extra];
+                    }
                 }
 
                 // Initialize announcement fields if missing
@@ -171,7 +220,8 @@ export function LandingPageManagement() {
             const { ok, data } = await landingPageApi.updateLandingContent(content);
             if (ok && data.success) {
                 toast.success("Content updated successfully");
-                setContent(data.data);
+                // Re-fetch so initialization logic runs on the fresh data
+                await fetchContent();
             } else {
                 toast.error("Failed to update content");
             }
@@ -397,59 +447,76 @@ export function LandingPageManagement() {
                             <CardDescription>Main banner and introduction.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
-                                    <Label>Badge Text</Label>
-                                    <Input
-                                        value={content.hero.badge}
-                                        onChange={(e) => updateField('hero.badge', e.target.value)}
+                            <div className="space-y-4 pb-4">
+                                <h3 className="text-sm font-medium">Hero Global Settings</h3>
+                                <div className="max-w-md">
+                                    <FileUpload
+                                        label="Hero Brochure PDF"
+                                        value={content.hero.brochureUrl || ""}
+                                        onChange={(url) => updateField('hero.brochureUrl', url)}
+                                        accept=".pdf"
                                     />
+                                    <p className="text-[10px] text-muted-foreground mt-1">This brochure will be available for download beside the View Courses button.</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Main Title</Label>
-                                    <Input
-                                        value={content.hero.title}
-                                        onChange={(e) => updateField('hero.title', e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Description</Label>
-                                    <Textarea
-                                        value={content.hero.description}
-                                        onChange={(e) => updateField('hero.description', e.target.value)}
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Demo Button Text</Label>
-                                        <Input
-                                            value={content.hero.ctaDemoText}
-                                            onChange={(e) => updateField('hero.ctaDemoText', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Courses Button Text</Label>
-                                        <Input
-                                            value={content.hero.ctaCoursesText}
-                                            onChange={(e) => updateField('hero.ctaCoursesText', e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="border-t pt-4">
-                                    <h3 className="text-sm font-medium mb-4">Hero Videos (Exactly 5)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {content.hero.videos?.slice(0, 5).map((video: any, index: number) => (
-                                            <div key={index} className="space-y-4 p-4 bg-muted/20 rounded-lg border relative">
-                                                <div className="absolute -top-2 -left-2 bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
-                                                    {index + 1}
+                            </div>
+                            <div className="border-t pt-4">
+                                <h3 className="text-sm font-medium mb-4">Hero Videos (Exactly 5)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {content.hero.videos?.slice(0, 5).map((video: any, index: number) => (
+                                        <div key={index} className="space-y-4 p-4 bg-muted/20 rounded-lg border relative">
+                                            <div className="absolute -top-2 -left-2 bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">
+                                                {index + 1}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <ImageUpload
+                                                    label={`Thumbnail ${index + 1}`}
+                                                    value={video.thumbnail || ""}
+                                                    onChange={(url) => updateField(`hero.videos.${index}.thumbnail`, url)}
+                                                    recommendedDimensions="1280 x 720 px (16:9)"
+                                                />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Badge {index + 1}</Label>
+                                                    <Input
+                                                        value={video.badge}
+                                                        onChange={(e) => updateField(`hero.videos.${index}.badge`, e.target.value)}
+                                                        className="h-8"
+                                                    />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <ImageUpload
-                                                        label={`Thumbnail ${index + 1}`}
-                                                        value={video.thumbnail || ""}
-                                                        onChange={(url) => updateField(`hero.videos.${index}.thumbnail`, url)}
-                                                        recommendedDimensions="1280 x 720 px (16:9)"
+                                                    <Label className="text-xs">Title {index + 1}</Label>
+                                                    <Input
+                                                        value={video.title}
+                                                        onChange={(e) => updateField(`hero.videos.${index}.title`, e.target.value)}
+                                                        className="h-8"
                                                     />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Description {index + 1}</Label>
+                                                    <Textarea
+                                                        value={video.description}
+                                                        onChange={(e) => updateField(`hero.videos.${index}.description`, e.target.value)}
+                                                        className="h-16 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Demo Text</Label>
+                                                        <Input
+                                                            value={video.ctaDemoText}
+                                                            onChange={(e) => updateField(`hero.videos.${index}.ctaDemoText`, e.target.value)}
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label className="text-[10px]">Courses Text</Label>
+                                                        <Input
+                                                            value={video.ctaCoursesText}
+                                                            onChange={(e) => updateField(`hero.videos.${index}.ctaCoursesText`, e.target.value)}
+                                                            className="h-7 text-xs"
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label className="text-xs">Video URL {index + 1}</Label>
@@ -460,63 +527,62 @@ export function LandingPageManagement() {
                                                         className="h-8"
                                                     />
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="border-t pt-4">
-                                    <h3 className="text-sm font-medium mb-4">Hero Stats (3 items)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        {content.hero.stats?.slice(0, 3).map((stat: any, index: number) => (
-                                            <div key={index} className="space-y-4 p-4 bg-muted/20 rounded-lg border relative">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Label {index + 1}</Label>
-                                                    <Input
-                                                        value={stat.label}
-                                                        onChange={(e) => updateField(`hero.stats.${index}.label`, e.target.value)}
-                                                        className="h-8"
-                                                    />
+                                                <div className="grid grid-cols-2 gap-2 pt-2 border-t mt-2">
+                                                    <div className="col-span-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Quick Info Items</div>
+                                                    {video.quickInfo?.map((info: any, qIdx: number) => (
+                                                        <div key={qIdx} className="space-y-1">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Info {qIdx + 1} Label</Label>
+                                                                <Input
+                                                                    value={info.label}
+                                                                    onChange={(e) => updateField(`hero.videos.${index}.quickInfo.${qIdx}.label`, e.target.value)}
+                                                                    className="h-7 text-xs"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Info {qIdx + 1} Value</Label>
+                                                                <Input
+                                                                    value={info.value}
+                                                                    onChange={(e) => updateField(`hero.videos.${index}.quickInfo.${qIdx}.value`, e.target.value)}
+                                                                    className="h-7 text-xs"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Value {index + 1}</Label>
-                                                    <Input
-                                                        value={stat.value}
-                                                        onChange={(e) => updateField(`hero.stats.${index}.value`, e.target.value)}
-                                                        className="h-8"
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="border-t pt-4">
-                                    <h3 className="text-sm font-medium mb-4">Quick Info Items (2 items)</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {content.hero.quickInfo?.slice(0, 2).map((info: any, index: number) => (
-                                            <div key={index} className="space-y-4 p-4 bg-muted/20 rounded-lg border relative">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Label {index + 1}</Label>
-                                                    <Input
-                                                        value={info.label}
-                                                        onChange={(e) => updateField(`hero.quickInfo.${index}.label`, e.target.value)}
-                                                        className="h-8"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Value {index + 1}</Label>
-                                                    <Input
-                                                        value={info.value}
-                                                        onChange={(e) => updateField(`hero.quickInfo.${index}.value`, e.target.value)}
-                                                        className="h-8"
-                                                    />
+                                                <div className="grid grid-cols-3 gap-2 pt-2 border-t mt-2">
+                                                    <div className="col-span-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Hero Stats</div>
+                                                    {video.stats?.map((stat: any, sIdx: number) => (
+                                                        <div key={sIdx} className="space-y-1">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Stat {sIdx + 1} Label</Label>
+                                                                <Input
+                                                                    value={stat.label}
+                                                                    onChange={(e) => updateField(`hero.videos.${index}.stats.${sIdx}.label`, e.target.value)}
+                                                                    className="h-7 text-xs"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label className="text-[10px]">Stat {sIdx + 1} Value</Label>
+                                                                <Input
+                                                                    value={stat.value}
+                                                                    onChange={(e) => updateField(`hero.videos.${index}.stats.${sIdx}.value`, e.target.value)}
+                                                                    className="h-7 text-xs"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
+
+
+
+
+
                         </CardContent>
                     </Card>
                 </TabsContent>

@@ -12,8 +12,13 @@ const rankHolderSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ""
+    },
+    subCategory: {
+        type: String,
+        trim: true,
+        default: ""
     },
     globalRank: {
         type: String,
@@ -34,6 +39,15 @@ const rankHolderSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
+    },
+    showOnLandingPage: {
+        type: Boolean,
+        default: false
+    },
+    score: {
+        type: String,
+        trim: true,
+        default: ""
     }
 }, {
     timestamps: true

@@ -101,17 +101,27 @@ const forgotPassword = async (req, res) => {
 
         await user.save({ validateBeforeSave: false });
 
-        // Create reset url (Frontend URL)
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+        // Create reset url
+        const resetUrl = `https://jkshahclasses.com/reset-password/${resetToken}`;
 
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click the link below to reset your password: \n\n ${resetUrl}`;
+        const html = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; color: #333; line-height: 1.6;">
+                <h2 style="color: #333; text-align: center;">Reset Your Password</h2>
+                <p>Hello,</p>
+                <p>We received a request to reset the password for your JK Shah Classes account. If you made this request, please click the button below to choose a new password:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${resetUrl}" style="display: inline-block; padding: 12px 25px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold;">Reset Password</a>
+                </div>
+                <p>If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+                <p>Best regards,<br><strong>The JK Shah Classes Team</strong></p>
+            </div>
+        `;
 
         try {
             await sendEmail({
                 email: user.email,
                 subject: 'Password reset token',
-                message
+                html
             });
 
             res.status(200).json({ success: true, data: 'Email sent' });

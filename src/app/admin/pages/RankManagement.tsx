@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { Switch } from "../../components/ui/switch";
 import { Plus, Pencil, Trash2, Search, FileUp, Loader2 } from "lucide-react";
 import { useCourseContext, RankHolder } from "../context/CourseContext";
 import { ImageUpload } from "../../components/ImageUpload";
@@ -20,9 +21,10 @@ import {
     PaginationPrevious,
 } from "../../components/ui/pagination";
 import { useEffect } from "react";
+import { getPaginationItems } from "../utils/pagination";
 
 export function RankManagement() {
-    const { rankHolders, allCategories: categories, addRankHolder, updateRankHolder, deleteRankHolder, loading, pagination, refreshRankHolders } = useCourseContext();
+    const { rankHolders, allCategories: categories, addRankHolder, updateRankHolder, deleteRankHolder, deleteAllRankHolders, loading, pagination, refreshRankHolders } = useCourseContext();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [editingRank, setEditingRank] = useState<RankHolder | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
@@ -31,18 +33,27 @@ export function RankManagement() {
     const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isToggling, setIsToggling] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<Partial<RankHolder>>({
         name: "",
         image: "/uploads/placeholder.png",
         category: "",
+        subCategory: "",
         globalRank: "",
         indiaRank: "",
         course: "",
-        session: ""
+        session: "",
+        showOnLandingPage: false,
+        score: ""
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const parentCategories = categories.filter(c => !c.parent);
+    const subCategories = categories.filter(
+        c => c.parent && parentCategories.find(p => p.name === formData.category && p._id === c.parent)
+    );
 
     const validateField = (name: string, value: string) => {
         let error = "";
@@ -55,16 +66,17 @@ export function RankManagement() {
             }
         }
 
-        // Custom check for ranks - they are individually optional but collectively required
-        if (name === "globalRank" || name === "indiaRank") {
+        // Custom check for metrics - they are individually optional but collectively required
+        if (name === "globalRank" || name === "indiaRank" || name === "score") {
             const globalValue = name === "globalRank" ? value : (formData.globalRank || "");
             const indiaValue = name === "indiaRank" ? value : (formData.indiaRank || "");
+            const scoreValue = name === "score" ? value : (formData.score || "");
 
-            if (!globalValue.trim() && !indiaValue.trim()) {
-                error = "At least one rank (Global or India) is required";
+            if (!globalValue.trim() && !indiaValue.trim() && !scoreValue.trim()) {
+                error = "At least one metric (Global Rank, India Rank, or Score) is required";
             } else {
-                // Clear errors on both fields if at least one is filled
-                setErrors(prev => ({ ...prev, globalRank: "", indiaRank: "" }));
+                // Clear errors on all three fields if at least one is filled
+                setErrors(prev => ({ ...prev, globalRank: "", indiaRank: "", score: "" }));
                 return true;
             }
         }
@@ -87,10 +99,11 @@ export function RankManagement() {
             }
         });
 
-        // Check if at least one rank is provided
-        if (!formData.globalRank?.trim() && !formData.indiaRank?.trim()) {
-            newErrors.globalRank = "At least one rank is required";
-            newErrors.indiaRank = "At least one rank is required";
+        // Check if at least one metric is provided
+        if (!formData.globalRank?.trim() && !formData.indiaRank?.trim() && !formData.score?.trim()) {
+            newErrors.globalRank = "Required if no India Rank or Score";
+            newErrors.indiaRank = "Required if no Global Rank or Score";
+            newErrors.score = "Required if no Ranks provided";
             isValid = false;
         }
 
@@ -115,11 +128,14 @@ export function RankManagement() {
         setFormData({
             name: "",
             image: "/uploads/placeholder.png",
-            category: categories[0]?.name || "",
+            category: "",
+            subCategory: "",
             globalRank: "",
             indiaRank: "",
             course: "",
-            session: ""
+            session: "",
+            showOnLandingPage: false,
+            score: ""
         });
         setErrors({});
         setIsAddDialogOpen(true);
@@ -150,6 +166,17 @@ export function RankManagement() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setSelectedFile(e.target.files[0]);
+        }
+    };
+
+    const handleToggleVisibility = async (rank: RankHolder, checked: boolean) => {
+        setIsToggling(rank._id);
+        try {
+            await updateRankHolder(rank._id, { ...rank, showOnLandingPage: checked });
+        } catch (error) {
+            toast.error("Failed to update visibility");
+        } finally {
+            setIsToggling(null);
         }
     };
 
@@ -204,8 +231,8 @@ export function RankManagement() {
     };
 
     const downloadSampleTemplate = () => {
-        const headers = ["name", "category", "globalRank", "indiaRank", "course", "session", "image"];
-        const sampleData = ["John Doe", "ACCA", "1", "1", "Financial Reporting", "June 2023", "/uploads/placeholder.png"];
+        const headers = ["name", "category", "globalRank", "indiaRank", "course", "session", "score", "image"];
+        const sampleData = ["John Doe", "ACCA", "1", "1", "Financial Reporting", "June 2023", "95/100", "/uploads/placeholder.png"];
         const csvContent = [headers.join(","), sampleData.join(",")].join("\n");
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
@@ -230,6 +257,9 @@ export function RankManagement() {
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setIsBulkDialogOpen(true)}>
                         <FileUp className="mr-2 h-4 w-4" /> Bulk Upload
+                    </Button>
+                    <Button variant="destructive" onClick={deleteAllRankHolders} disabled={rankHolders.length === 0}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Delete All
                     </Button>
                     <Button onClick={handleOpenAdd}>
                         <Plus className="mr-2 h-4 w-4" /> Add Rank Holder
@@ -269,11 +299,14 @@ export function RankManagement() {
                         <TableRow>
                             <TableHead className="w-[80px]">Image</TableHead>
                             <TableHead>Student Name</TableHead>
+                            <TableHead>Category</TableHead>
                             <TableHead>Sub-Category</TableHead>
                             <TableHead>Global Rank</TableHead>
                             <TableHead>India Rank</TableHead>
                             <TableHead>Course</TableHead>
                             <TableHead>Session</TableHead>
+                            <TableHead>Score</TableHead>
+                            <TableHead>Landing Page</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -286,10 +319,24 @@ export function RankManagement() {
                                     </TableCell>
                                     <TableCell className="font-medium">{rank.name}</TableCell>
                                     <TableCell>{rank.category}</TableCell>
+                                    <TableCell>{rank.subCategory || "-"}</TableCell>
                                     <TableCell>{rank.globalRank}</TableCell>
                                     <TableCell>{rank.indiaRank}</TableCell>
                                     <TableCell>{rank.course}</TableCell>
                                     <TableCell>{rank.session}</TableCell>
+                                    <TableCell>{rank.score || "-"}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center space-x-2">
+                                            <Switch
+                                                checked={rank.showOnLandingPage || false}
+                                                onCheckedChange={(checked) => handleToggleVisibility(rank, checked)}
+                                                disabled={isToggling === rank._id}
+                                            />
+                                            <span className={`text-xs font-medium ${rank.showOnLandingPage ? 'text-green-600' : 'text-gray-500'}`}>
+                                                {rank.showOnLandingPage ? 'Visible' : 'Hidden'}
+                                            </span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(rank)}>
@@ -304,7 +351,7 @@ export function RankManagement() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground italic">
+                                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground italic">
                                     No rank holders found.
                                 </TableCell>
                             </TableRow>
@@ -329,18 +376,22 @@ export function RankManagement() {
                                     }}
                                 />
                             </PaginationItem>
-                            {[...Array(pagination.rankHolders.pages)].map((_, i) => (
+                            {getPaginationItems(currentPage, pagination.rankHolders.pages).map((item, i) => (
                                 <PaginationItem key={i}>
-                                    <PaginationLink
-                                        href="#"
-                                        isActive={currentPage === i + 1}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            setCurrentPage(i + 1);
-                                        }}
-                                    >
-                                        {i + 1}
-                                    </PaginationLink>
+                                    {item === "ellipsis" ? (
+                                        <PaginationEllipsis />
+                                    ) : (
+                                        <PaginationLink
+                                            href="#"
+                                            isActive={currentPage === item}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setCurrentPage(item);
+                                            }}
+                                        >
+                                            {item}
+                                        </PaginationLink>
+                                    )}
                                 </PaginationItem>
                             ))}
                             <PaginationItem>
@@ -365,8 +416,8 @@ export function RankManagement() {
                             Enter the details of the student who achieved a top rank.
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                        <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 py-4">
                             <div className="space-y-2 col-span-2">
                                 <Label htmlFor="name">Student Name</Label>
                                 <Input
@@ -381,25 +432,49 @@ export function RankManagement() {
                                 />
                                 {errors.name && <p className="text-xs font-medium text-destructive">{errors.name}</p>}
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Sub-Category</Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(val) => {
-                                        setFormData({ ...formData, category: val });
-                                        validateField("category", val);
-                                    }}
-                                >
-                                    <SelectTrigger className={errors.category ? "border-destructive focus-visible:ring-destructive" : ""}>
-                                        <SelectValue placeholder="Select sub-category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {categories.filter(c => c.parent).map((cat) => (
-                                            <SelectItem key={cat._id} value={cat.name}>{cat.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {errors.category && <p className="text-xs font-medium text-destructive">{errors.category}</p>}
+                            {/* Category + Sub Category */}
+                            <div className="space-y-4 col-span-2">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="category">Category</Label>
+                                        <select
+                                            id="category"
+                                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${errors.category ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                            value={formData.category || ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({ ...formData, category: val, subCategory: "" });
+                                                validateField("category", val);
+                                            }}
+                                        >
+                                            <option value="">Select Category (Optional)</option>
+                                            {parentCategories.map(cat => (
+                                                <option key={cat._id} value={cat.name}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        {errors.category && <p className="text-xs font-medium text-destructive">{errors.category}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="subCategory">Sub Category</Label>
+                                        <select
+                                            id="subCategory"
+                                            className={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${errors.subCategory ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                                            value={formData.subCategory || ""}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormData({ ...formData, subCategory: val });
+                                                validateField("subCategory", val);
+                                            }}
+                                        >
+                                            <option value="">Select Sub Category (Optional)</option>
+                                            {/* Show all subcategories if no category is selected, otherwise filter */}
+                                            {(formData.category ? subCategories : categories.filter(c => c.parent)).map(sub => (
+                                                <option key={sub._id} value={sub.name}>{sub.name}</option>
+                                            ))}
+                                        </select>
+                                        {errors.subCategory && <p className="text-xs font-medium text-destructive">{errors.subCategory}</p>}
+                                    </div>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="course">Course/Subject</Label>
@@ -462,6 +537,31 @@ export function RankManagement() {
                                 {errors.session && <p className="text-xs font-medium text-destructive">{errors.session}</p>}
                             </div>
                             <div className="space-y-2">
+                                <Label htmlFor="score">Score</Label>
+                                <Input
+                                    id="score"
+                                    className={errors.score ? "border-destructive focus-visible:ring-destructive" : ""}
+                                    placeholder="e.g. 450/500 or 95%"
+                                    value={formData.score || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setFormData({ ...formData, score: val });
+                                        validateField("score", val);
+                                    }}
+                                />
+                                {errors.score && <p className="text-xs font-medium text-destructive">{errors.score}</p>}
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="showOnLandingPage"
+                                        checked={formData.showOnLandingPage || false}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, showOnLandingPage: checked })}
+                                    />
+                                    <Label htmlFor="showOnLandingPage">Visible on Landing Page</Label>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
                                 <ImageUpload
                                     label="Student Image"
                                     value={formData.image || ""}
@@ -470,7 +570,7 @@ export function RankManagement() {
                                 />
                             </div>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="pt-2 border-t mt-2">
                             <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
                             <Button type="submit" disabled={Object.values(errors).some(err => err !== "")}>
                                 {editingRank ? "Save Changes" : "Add Rank Holder"}
@@ -507,7 +607,7 @@ export function RankManagement() {
                         </div>
                         <div className="text-sm text-muted-foreground">
                             Required columns: name, category, course, session. <br />
-                            Optional columns: globalRank, indiaRank, image. <br />
+                            Optional columns: globalRank, indiaRank, score, image. <br />
                             <strong>_id column required for updates.</strong>
                         </div>
                         <Button variant="link" className="p-0 h-auto" onClick={downloadSampleTemplate}>

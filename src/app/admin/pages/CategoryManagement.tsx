@@ -12,6 +12,7 @@ import { categoryApi } from "../../api/api";
 import { Pagination } from "../components/Pagination";
 import { toast } from "sonner";
 import { generateSlug } from "../utils/slugify";
+import { ImageUpload } from "../../components/ImageUpload";
 
 export function CategoryManagement() {
     const { categories, addCategory, updateCategory, deleteCategory, loading, pagination, refreshCategories } = useCourseContext();
@@ -22,7 +23,16 @@ export function CategoryManagement() {
         metaTitle: "",
         metaDescription: "",
         metaKeywords: "",
+        whyTitle: "Why CA?",
+        whyPoints: ["", "", "", "", "", "", ""],
+        whyJKShahTitle: "Why JKShah Classes?",
+        whyJKShahPoints: ["", "", "", "", "", "", ""],
         sequence: 0,
+        bannerTitle: "",
+        bannerSubtitle: "",
+        bannerBadges: ["", "", ""],
+        bannerBadgeIcons: ["", "", ""],
+        bannerStats: [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }],
     });
 
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -58,8 +68,18 @@ export function CategoryManagement() {
                 newCategory.metaTitle.trim(),
                 newCategory.metaDescription.trim(),
                 newCategory.metaKeywords.trim(),
-                undefined, undefined, undefined, undefined, // Why fields
-                Number(newCategory.sequence) || 0
+                newCategory.whyTitle.trim(),
+                "", // whyContent (legacy)
+                newCategory.whyJKShahTitle.trim(),
+                "", // whyJKShahContent (legacy)
+                newCategory.whyPoints,
+                newCategory.whyJKShahPoints,
+                Number(newCategory.sequence) || 0,
+                newCategory.bannerTitle.trim(),
+                newCategory.bannerSubtitle.trim(),
+                newCategory.bannerBadges,
+                newCategory.bannerBadgeIcons,
+                newCategory.bannerStats
             ).then(() => {
                 setNewCategory({
                     name: "",
@@ -67,7 +87,16 @@ export function CategoryManagement() {
                     metaTitle: "",
                     metaDescription: "",
                     metaKeywords: "",
-                    sequence: 0
+                    whyTitle: "Why CA?",
+                    whyPoints: ["", "", "", "", "", "", ""],
+                    whyJKShahTitle: "Why JKShah Classes?",
+                    whyJKShahPoints: ["", "", "", "", "", "", ""],
+                    sequence: 0,
+                    bannerTitle: "",
+                    bannerSubtitle: "",
+                    bannerBadges: ["", "", ""],
+                    bannerBadgeIcons: ["", "", ""],
+                    bannerStats: [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }]
                 });
             });
         }
@@ -81,7 +110,16 @@ export function CategoryManagement() {
             metaTitle: cat.metaTitle || "",
             metaDescription: cat.metaDescription || "",
             metaKeywords: cat.metaKeywords || "",
-            sequence: cat.sequence || 0
+            whyTitle: cat.whyTitle || "Why CA?",
+            whyPoints: (cat.whyPoints && cat.whyPoints.some(p => p)) ? cat.whyPoints : [cat.whyContent || "", "", "", "", "", "", ""],
+            whyJKShahTitle: cat.whyJKShahTitle || "Why JKShah Classes?",
+            whyJKShahPoints: (cat.whyJKShahPoints && cat.whyJKShahPoints.some(p => p)) ? cat.whyJKShahPoints : [cat.whyJKShahContent || "", "", "", "", "", "", ""],
+            sequence: cat.sequence || 0,
+            bannerTitle: cat.bannerTitle || "",
+            bannerSubtitle: cat.bannerSubtitle || "",
+            bannerBadges: cat.bannerBadges?.length ? cat.bannerBadges : ["", "", ""],
+            bannerBadgeIcons: cat.bannerBadgeIcons?.length ? cat.bannerBadgeIcons : ["", "", ""],
+            bannerStats: cat.bannerStats?.length ? cat.bannerStats : [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }]
         });
         setIsEditDialogOpen(true);
     };
@@ -175,6 +213,166 @@ export function CategoryManagement() {
                                 onChange={(e) => setNewCategory({ ...newCategory, metaDescription: e.target.value })}
                             />
                         </div>
+
+                        <div className="md:col-span-2 border-t pt-4">
+                            <h4 className="text-sm font-semibold mb-4 text-foreground">Comparison Section (Left Side)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="newWhyTitle">Title</Label>
+                                    <Input
+                                        id="newWhyTitle"
+                                        placeholder="e.g. Why CA?"
+                                        value={newCategory.whyTitle}
+                                        onChange={(e) => setNewCategory({ ...newCategory, whyTitle: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <Label>Comparison Points (7 Points)</Label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {newCategory.whyPoints.map((point, index) => (
+                                            <Input
+                                                key={index}
+                                                placeholder={`Point ${index + 1}`}
+                                                value={point}
+                                                onChange={(e) => {
+                                                    const updatedPoints = [...newCategory.whyPoints];
+                                                    updatedPoints[index] = e.target.value;
+                                                    setNewCategory(prev => ({ ...prev, whyPoints: updatedPoints }));
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2 border-t pt-4">
+                            <h4 className="text-sm font-semibold mb-4 text-foreground">Comparison Section (Right Side)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="newWhyJKShahTitle">Title</Label>
+                                    <Input
+                                        id="newWhyJKShahTitle"
+                                        placeholder="e.g. Why JKShah Classes?"
+                                        value={newCategory.whyJKShahTitle}
+                                        onChange={(e) => setNewCategory({ ...newCategory, whyJKShahTitle: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <Label>Comparison Points (7 Points)</Label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {newCategory.whyJKShahPoints.map((point, index) => (
+                                            <Input
+                                                key={index}
+                                                placeholder={`Point ${index + 1}`}
+                                                value={point}
+                                                onChange={(e) => {
+                                                    const updatedPoints = [...newCategory.whyJKShahPoints];
+                                                    updatedPoints[index] = e.target.value;
+                                                    setNewCategory(prev => ({ ...prev, whyJKShahPoints: updatedPoints }));
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2 border-t pt-6 space-y-6">
+                            <div>
+                                <h4 className="text-sm font-bold mb-4 text-foreground flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-red-600 rounded-full" />
+                                    Course Detail Banner Section
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/5 p-4 rounded-xl border border-dashed">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newBannerTitle" className="text-xs font-semibold">Banner Title</Label>
+                                        <Input
+                                            id="newBannerTitle"
+                                            placeholder="e.g. Empower your career with CA."
+                                            className="bg-white"
+                                            value={newCategory.bannerTitle}
+                                            onChange={(e) => setNewCategory({ ...newCategory, bannerTitle: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="newBannerSubtitle" className="text-xs font-semibold">Banner Subtitle</Label>
+                                        <Input
+                                            id="newBannerSubtitle"
+                                            placeholder="e.g. Get there with JK Shah Classes."
+                                            className="bg-white"
+                                            value={newCategory.bannerSubtitle}
+                                            onChange={(e) => setNewCategory({ ...newCategory, bannerSubtitle: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Badge Configuration (Outcome Section)</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {(newCategory.bannerBadges || ["", "", ""]).map((badge, index) => (
+                                        <div key={index} className="space-y-4 p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-bold text-red-600 uppercase">Badge {index + 1} Name</Label>
+                                                <Input
+                                                    placeholder={`e.g. High Income`}
+                                                    className="h-8 text-xs"
+                                                    value={badge}
+                                                    onChange={(e) => {
+                                                        const updated = [...(newCategory.bannerBadges || ["", "", ""])];
+                                                        updated[index] = e.target.value;
+                                                        setNewCategory({ ...newCategory, bannerBadges: updated });
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-bold text-red-600 uppercase">Badge {index + 1} Icon</Label>
+                                                <ImageUpload
+                                                    className="mt-1"
+                                                    value={newCategory.bannerBadgeIcons?.[index] || ""}
+                                                    onChange={(url) => {
+                                                        const updated = [...(newCategory.bannerBadgeIcons || ["", "", ""])];
+                                                        updated[index] = url;
+                                                        setNewCategory({ ...newCategory, bannerBadgeIcons: updated });
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 space-y-4">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statistics Section</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {(newCategory.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }]).map((stat, index) => (
+                                        <div key={index} className="space-y-2 p-3 border rounded-xl bg-white shadow-sm">
+                                            <Input
+                                                placeholder={`Value ${index + 1}`}
+                                                className="h-8 text-xs font-bold"
+                                                value={stat.value}
+                                                onChange={(e) => {
+                                                    const updated = [...(newCategory.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }])];
+                                                    updated[index] = { ...updated[index], value: e.target.value };
+                                                    setNewCategory({ ...newCategory, bannerStats: updated });
+                                                }}
+                                            />
+                                            <Input
+                                                placeholder={`Label ${index + 1}`}
+                                                className="h-8 text-xs"
+                                                value={stat.label}
+                                                onChange={(e) => {
+                                                    const updated = [...(newCategory.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }])];
+                                                    updated[index] = { ...updated[index], label: e.target.value };
+                                                    setNewCategory({ ...newCategory, bannerStats: updated });
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex justify-end">
                         <Button onClick={handleAddCategory} className="w-full md:w-auto">Add Category</Button>
@@ -197,7 +395,6 @@ export function CategoryManagement() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Category Name</TableHead>
-                            <TableHead>Category Name</TableHead>
                             <TableHead>Sequence</TableHead>
                             <TableHead>Slug</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -206,7 +403,7 @@ export function CategoryManagement() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                                     <div className="flex items-center justify-center gap-2">
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                         <span>Loading categories...</span>
@@ -249,7 +446,7 @@ export function CategoryManagement() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                                     No categories found.
                                 </TableCell>
                             </TableRow>
@@ -293,7 +490,7 @@ export function CategoryManagement() {
                             Update category details and Comparison section content.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-6 py-4">
+                    <div className="grid gap-6 py-4 text-foreground">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Category Name</Label>
@@ -351,6 +548,164 @@ export function CategoryManagement() {
                                     value={editFormData.metaDescription || ""}
                                     onChange={(e) => setEditFormData({ ...editFormData, metaDescription: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="md:col-span-2 border-t pt-4">
+                                <h4 className="text-sm font-semibold mb-4">Comparison Section (Left Side)</h4>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="whyTitle">Title</Label>
+                                        <Input
+                                            id="whyTitle"
+                                            placeholder="e.g. Why CA?"
+                                            value={editFormData.whyTitle || ""}
+                                            onChange={(e) => setEditFormData({ ...editFormData, whyTitle: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid gap-4">
+                                        <Label>Comparison Points (7 Points)</Label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {(editFormData.whyPoints || ["", "", "", "", "", "", ""]).map((point, index) => (
+                                                <Input
+                                                    key={index}
+                                                    placeholder={`Point ${index + 1}`}
+                                                    value={point}
+                                                    onChange={(e) => {
+                                                        const updatedPoints = [...(editFormData.whyPoints || ["", "", "", "", "", "", ""])];
+                                                        updatedPoints[index] = e.target.value;
+                                                        setEditFormData(prev => ({ ...prev, whyPoints: updatedPoints }));
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2 border-t pt-4">
+                                <h4 className="text-sm font-semibold mb-4">Comparison Section (Right Side)</h4>
+                                <div className="grid gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="whyJKShahTitle">Title</Label>
+                                        <Input
+                                            id="whyJKShahTitle"
+                                            placeholder="e.g. Why JKShah Classes?"
+                                            value={editFormData.whyJKShahTitle || ""}
+                                            onChange={(e) => setEditFormData({ ...editFormData, whyJKShahTitle: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid gap-4">
+                                        <Label>Comparison Points (7 Points)</Label>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {(editFormData.whyJKShahPoints || ["", "", "", "", "", "", ""]).map((point, index) => (
+                                                <Input
+                                                    key={index}
+                                                    placeholder={`Point ${index + 1}`}
+                                                    value={point}
+                                                    onChange={(e) => {
+                                                        const updatedPoints = [...(editFormData.whyJKShahPoints || ["", "", "", "", "", "", ""])];
+                                                        updatedPoints[index] = e.target.value;
+                                                        setEditFormData(prev => ({ ...prev, whyJKShahPoints: updatedPoints }));
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2 border-t pt-6 space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-bold mb-4 text-foreground flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-red-600 rounded-full" />
+                                        Course Detail Banner Section
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/5 p-4 rounded-xl border border-dashed text-foreground">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="editBannerTitle" className="text-xs font-semibold">Banner Title</Label>
+                                            <Input
+                                                id="editBannerTitle"
+                                                value={editFormData.bannerTitle || ""}
+                                                className="bg-white"
+                                                onChange={(e) => setEditFormData({ ...editFormData, bannerTitle: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="editBannerSubtitle" className="text-xs font-semibold">Banner Subtitle</Label>
+                                            <Input
+                                                id="editBannerSubtitle"
+                                                value={editFormData.bannerSubtitle || ""}
+                                                className="bg-white"
+                                                onChange={(e) => setEditFormData({ ...editFormData, bannerSubtitle: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Badge Configuration (Outcome Section)</Label>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {(editFormData.bannerBadges || ["", "", ""]).map((badge, index) => (
+                                            <div key={index} className="space-y-4 p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold text-red-600 uppercase">Badge {index + 1} Name</Label>
+                                                    <Input
+                                                        placeholder={`e.g. High Income`}
+                                                        className="h-8 text-xs font-medium"
+                                                        value={badge}
+                                                        onChange={(e) => {
+                                                            const updated = [...(editFormData.bannerBadges || ["", "", ""])];
+                                                            updated[index] = e.target.value;
+                                                            setEditFormData({ ...editFormData, bannerBadges: updated });
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-[10px] font-bold text-red-600 uppercase">Badge {index + 1} Icon</Label>
+                                                    <ImageUpload
+                                                        className="mt-1"
+                                                        value={editFormData.bannerBadgeIcons?.[index] || ""}
+                                                        onChange={(url) => {
+                                                            const updated = [...(editFormData.bannerBadgeIcons || ["", "", ""])];
+                                                            updated[index] = url;
+                                                            setEditFormData({ ...editFormData, bannerBadgeIcons: updated });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 space-y-4">
+                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Statistics Section</Label>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        {(editFormData.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }]).map((stat, index) => (
+                                            <div key={index} className="space-y-2 p-3 border rounded-xl bg-white shadow-sm">
+                                                <Input
+                                                    placeholder="Value"
+                                                    className="h-8 text-xs font-bold"
+                                                    value={stat.value}
+                                                    onChange={(e) => {
+                                                        const updated = [...(editFormData.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }])];
+                                                        updated[index] = { ...updated[index], value: e.target.value };
+                                                        setEditFormData({ ...editFormData, bannerStats: updated });
+                                                    }}
+                                                />
+                                                <Input
+                                                    placeholder="Label"
+                                                    className="h-8 text-xs"
+                                                    value={stat.label}
+                                                    onChange={(e) => {
+                                                        const updated = [...(editFormData.bannerStats || [{ value: "", label: "" }, { value: "", label: "" }, { value: "", label: "" }])];
+                                                        updated[index] = { ...updated[index], label: e.target.value };
+                                                        setEditFormData({ ...editFormData, bannerStats: updated });
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -12,7 +12,7 @@ import {
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
-import { Search, Loader2, Mail, MailOpen, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Search, Loader2, Mail, MailOpen, Trash2, CheckCircle, Clock, Download } from "lucide-react";
 import { branchEnquiryApi } from "../../api/api";
 import {
     AlertDialog,
@@ -95,6 +95,56 @@ export function BranchEnquiryManagement() {
             eq.course.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleExport = () => {
+        if (filteredEnquiries.length === 0) {
+            toast.error("No enquiries to export");
+            return;
+        }
+
+        const headers = ["Date", "Time", "Status", "Name", "Email", "Phone", "Branch", "Course Target", "Description"];
+        
+        const csvRows = filteredEnquiries.map(enquiry => {
+            const date = new Date(enquiry.createdAt);
+            const dateStr = format(date, "dd MMM yyyy");
+            const timeStr = format(date, "hh:mm a");
+            const status = enquiry.isRead ? "Read" : "Unread";
+            
+            const escapeCSV = (str: string) => {
+                if (!str) return '""';
+                const strValue = String(str);
+                if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
+                    return `"${strValue.replace(/"/g, '""')}"`;
+                }
+                return strValue;
+            };
+
+            return [
+                dateStr,
+                timeStr,
+                status,
+                escapeCSV(enquiry.name),
+                escapeCSV(enquiry.email),
+                escapeCSV(enquiry.phone),
+                escapeCSV(enquiry.branchName),
+                escapeCSV(enquiry.course),
+                escapeCSV(enquiry.description)
+            ].join(",");
+        });
+
+        const csvContent = [headers.join(","), ...csvRows].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `branch-enquiries-${format(new Date(), "yyyy-MM-dd")}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Exported successfully");
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -119,10 +169,16 @@ export function BranchEnquiryManagement() {
                         className="pl-9"
                     />
                 </div>
-                <Button variant="outline" onClick={fetchEnquiries} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Refresh
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleExport} disabled={isLoading || filteredEnquiries.length === 0}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                    </Button>
+                    <Button variant="outline" onClick={fetchEnquiries} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">

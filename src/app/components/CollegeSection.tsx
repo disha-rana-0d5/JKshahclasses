@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "./ui/carousel";
-import { animate } from "motion";
-
-function CountingNumber({ value, duration = 2 }: { value: string | number, duration?: number }) {
-    const nodeRef = useRef<HTMLSpanElement>(null);
-    const hasPlus = typeof value === 'string' && value.includes('+');
-    const targetValue = typeof value === 'string' ? parseInt(value.replace(/[^0-9]/g, ''), 10) : value;
-
-    useEffect(() => {
-        const node = nodeRef.current;
-        if (!node) return;
-
-        const controls = animate(0, targetValue, {
-            duration: duration,
-            ease: "easeOut",
-            onUpdate: (latest) => {
-                node.textContent = Math.floor(latest).toLocaleString();
-            },
-        });
-
-        return () => controls.stop();
-    }, [targetValue, duration]);
-
-    return <span><span ref={nodeRef}>0</span>{hasPlus ? '+' : ''}</span>;
-}
+import { CountingNumber } from "./ui/CountingNumber";
 
 export function CollegeSection() {
     const [api, setApi] = useState<CarouselApi>();
@@ -42,14 +19,16 @@ export function CollegeSection() {
     const sections = [
         {
             title: "The JKSC Legacy",
-            mainStat: { value: "515987+", label: "students till date" },
+            mainStat: {
+                value: "515987+", label: "Students Mentored Till Date"
+            },
             subStats: [
                 { value: "43+", label: " years of experience" },
                 { value: "377+", label: " faculties" },
                 { value: "10", label: "States" },
-                { value: "41", label: "cities" },
-                { value: "116", label: "Face to Face Centres" },
-                { value: "3885+", label: "Rankers (since 2001)" },
+                { value: "49", label: "cities" },
+                { value: "124", label: "Face to Face Centres" },
+                { value: "3977+", label: "Rankers (since 2001)" },
             ]
         },
         // {

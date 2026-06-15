@@ -37,6 +37,14 @@ const categorySchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    whyPoints: {
+        type: [String],
+        default: ["", "", "", "", "", "", ""]
+    },
+    whyJKShahPoints: {
+        type: [String],
+        default: ["", "", "", "", "", "", ""]
+    },
     slug: {
         type: String,
         trim: true,
@@ -56,7 +64,27 @@ const categorySchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: ""
-    }
+    },
+    bannerTitle: {
+        type: String,
+        default: ""
+    },
+    bannerSubtitle: {
+        type: String,
+        default: ""
+    },
+    bannerBadges: {
+        type: [String],
+        default: ["", "", ""]
+    },
+    bannerBadgeIcons: {
+        type: [String],
+        default: ["", "", ""]
+    },
+    bannerStats: [{
+        value: { type: String, default: "" },
+        label: { type: String, default: "" }
+    }]
 }, {
     timestamps: true
 });

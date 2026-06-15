@@ -23,6 +23,11 @@ const careerApplicationSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add your phone number']
     },
+    category: {
+        type: String,
+        trim: true,
+        default: ''
+    },
     postApplied: {
         type: String,
         required: [true, 'Please specify the post applied for'],

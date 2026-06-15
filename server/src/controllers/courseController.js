@@ -68,10 +68,14 @@ exports.getCourse = async (req, res) => {
 // @access  Private (Admin)
 exports.addCourse = async (req, res) => {
     try {
-        const { subCategory } = req.body;
+        const { category, subCategory } = req.body;
 
-        // Check if a course with this sub-category already exists
-        const existingCourse = await Course.findOne({ subCategory });
+        // Check if a course with this category and sub-category already exists
+        const existingCourse = await Course.findOne({
+            category,
+            subCategory: subCategory || ""
+        });
+
         if (existingCourse) {
             return res.status(400).json({
                 success: false,
@@ -109,9 +113,16 @@ exports.addCourse = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            return res.status(400).json({
+                success: false,
+                message: messages[0] || 'Validation Error'
+            });
+        }
         res.status(500).json({
             success: false,
-            message: 'Server Error'
+            message: error.message || 'Server Error'
         });
     }
 };

@@ -27,7 +27,7 @@ export function FacultyCard({
   return (
     <div className="bg-gradient-to-br from-white to-muted/30 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-border group">
       {/* Compact Faculty Image */}
-      <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5">
+      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5">
         <ImageWithFallback
           src={imageUrl}
           alt={name}
@@ -35,11 +35,9 @@ export function FacultyCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-
         {/* Name on Image */}
         <div className="absolute bottom-2 left-2 right-2">
-          <h3 className="text-sm text-white drop-shadow-lg">{name}</h3>
+          <h3 className="text-sm text-white drop-shadow-lg font-bold">{name}</h3>
           <p className="text-xs text-white/90">{designation}</p>
         </div>
       </div>

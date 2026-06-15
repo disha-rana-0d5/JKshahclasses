@@ -18,11 +18,27 @@ const placementRoutes = require('./routes/placementRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const careerRoutes = require('./routes/careerRoutes');
 const branchEnquiryRoutes = require('./routes/branchEnquiryRoutes');
+const alumniRoutes = require('./routes/alumniRoutes');
+const alumniWorkAtRoutes = require('./routes/alumniWorkAtRoutes');
+const productRoutes = require('./routes/productRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
+const erpCourseMappingRoutes = require('./routes/erpCourseMappingRoutes');
 const path = require('path');
 const fs = require('fs');
 const Blog = require('./models/Blog');
 const Course = require('./models/Course');
 const Category = require('./models/Category');
+const Faculty = require('./models/Faculty');
+const LandingPageContent = require('./models/LandingPageContent');
+const Batch = require('./models/Batch');
+
+// Load env vars
+dotenv.config();
+
+// Connect to database
+connectDB();
+
+const app = express();
 
 // Helper to inject meta tags into HTML
 const injectMeta = (html, { title, description, keywords }) => {
@@ -49,7 +65,20 @@ const injectMeta = (html, { title, description, keywords }) => {
 
 // Helper to inject body content into #root
 const injectBody = (html, content) => {
-    return html.replace('<div id="root"></div>', `<div id="root">\n${content}\n</div>`);
+    // Add a server-side loader that shows while the JS bundle is downloading.
+    // This loader will be replaced by the React app once it hydrates.
+    const loaderHTML = `
+        <div id="initial-loader" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; z-index: 10000; font-family: system-ui, -apple-system, sans-serif;">
+            <div style="width: 48px; height: 48px; border: 4px solid #f3f3f3; border-bottom-color: #373081; border-radius: 50%; display: inline-block; box-sizing: border-box; animation: rotation 1s linear infinite;"></div>
+            <p style="margin-top: 16px; color: #373081; font-weight: 500; letter-spacing: 0.5px;">Loading...</p>
+            <style>
+                @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+        </div>
+    `;
+
+    // Wrap the SEO content in a hidden div so crawlers see it but users don't see raw text.
+    return html.replace('<div id="root"></div>', `<div id="root">\n${loaderHTML}\n<div style="display:none" aria-hidden="true">\n${content}\n</div>\n</div>`);
 };
 
 // Content generation helpers for Pseudo-SSR
@@ -204,34 +233,264 @@ const generateBlogHTML = (blog) => {
     `;
 };
 
-const generateHomeHTML = (content) => {
-    if (!content) return '';
+const generateBranchLocatorHTML = (content) => {
+    if (!content || !content.branches) return '';
     return `
         <main>
-            <section class="hero">
-                <h1>${content.hero?.title || ''}</h1>
-                <p>${content.hero?.description || ''}</p>
+            <section class="branch-locator-header">
+                <h1>${content.branchPage?.header?.title || 'Find a Branch Near You'}</h1>
+                <p>${content.branchPage?.header?.description || ''}</p>
             </section>
-            <section class="about">
-                <h2>${content.aboutSection?.title || ''}</h2>
-                <p>${content.aboutSection?.description || ''}</p>
-                <ul>${content.aboutSection?.points?.map(p => `<li>${p}</li>`).join('') || ''}</ul>
-            </section>
-            <section class="online-exp">
-                <h2>${content.onlineExperience?.title || ''}</h2>
-                <p>${content.onlineExperience?.description || ''}</p>
+            <section class="branch-list">
+                ${content.branches.map(b => `
+                    <article class="branch-card">
+                        <h2>${b.name}</h2>
+                        <p>${b.address}</p>
+                        <p>${b.city}, ${b.state} - ${b.pincode}</p>
+                        <p>Phone: ${b.phone} | Email: ${b.email}</p>
+                        <p>Students: ${b.students}</p>
+                        <p>Available Courses: ${(b.courses || b.facilities || []).join(', ')}</p>
+                    </article>
+                `).join('')}
             </section>
         </main>
     `;
 };
 
-// Load env vars
-dotenv.config();
+const generateBranchDetailHTML = (branch, batches = []) => {
+    if (!branch) return '';
+    return `
+        <article>
+            <h1>${branch.name}</h1>
+            <p class="address">${branch.address}</p>
+            <p class="location">${branch.city}, ${branch.state} - ${branch.pincode}</p>
+            
+            <section class="contact-info">
+                <h2>Contact Details</h2>
+                <p><strong>Phone:</strong> ${branch.phone}</p>
+                <p><strong>Email:</strong> ${branch.email}</p>
+                <p><strong>Office Hours:</strong> ${branch.timings}</p>
+            </section>
 
-// Connect to database
-connectDB();
+            <section class="stats">
+                <h2>Branch Stats</h2>
+                <p><strong>Active Students:</strong> ${branch.students}</p>
+            </section>
 
-const app = express();
+            ${batches.length > 0 ? `
+                <section class="upcoming-batches">
+                    <h2>Upcoming Batches</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Level</th>
+                                <th>Starts On</th>
+                                <th>Attempt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${batches.map(v => `
+                                <tr>
+                                    <td>${v.categories?.length > 0 ? v.categories.join(', ') : (v.category || 'Course')}</td>
+                                    <td>${v.level}</td>
+                                    <td>${v.startDate} (${v.dayTiming})</td>
+                                    <td>${v.examAttempt}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </section>
+            ` : ''}
+
+            <section class="courses">
+                <h2>Available Courses</h2>
+                <ul>
+                    ${(branch.courses || branch.facilities || []).map(c => `<li>${c}</li>`).join('')}
+                </ul>
+            </section>
+        </article>
+    `;
+};
+
+const generateHomeHTML = (content, trendingCourses = [], faculties = []) => {
+    if (!content) return '';
+
+    const alumniList = [
+        { name: "Citibank", logo: "/assets/alumni/citibank.png" },
+        { name: "HDFC Securities", logo: "/assets/alumni/hdfc-securities.png" },
+        { name: "J.P. Morgan", logo: "/assets/alumni/jpmorgan.png" },
+        { name: "Accenture", logo: "/assets/alumni/accenture.png" },
+        { name: "KPMG", logo: "/assets/alumni/kpmg.png" },
+        { name: "Kotak", logo: "/assets/alumni/kot.png" },
+        { name: "Tata", logo: "/assets/alumni/tata.png" }
+    ];
+
+    return `
+        <main>
+            ${content.showAnnouncement && content.announcements && content.announcements.length > 0 ? `
+                <section class="announcements">
+                    <ul>
+                        ${content.announcements.map(a => `<li>${a}</li>`).join('')}
+                    </ul>
+                </section>
+            ` : ''}
+
+            <section class="legacy-stats">
+                <h2>The JKSC Legacy</h2>
+                <div class="stats-grid">
+                    <div><strong>5,15,987+</strong> students till date</div>
+                    <div><strong>43+</strong> years of experience</div>
+                    <div><strong>377+</strong> faculties</div>
+                    <div><strong>10</strong> States</div>
+                    <div><strong>41</strong> cities</div>
+                    <div><strong>116</strong> Face to Face Centres</div>
+                    <div><strong>3,885+</strong> Rankers (since 2001)</div>
+                </div>
+            </section>
+
+            ${content.aboutSection ? `
+                <section class="about-banner">
+                    <div class="badge">${content.aboutSection.badge || 'Discover JK Shah Classes'}</div>
+                    <h2>${content.aboutSection.title || ''}</h2>
+                    <p>${content.aboutSection.description || ''}</p>
+                    <ul>${content.aboutSection.points?.map(p => `<li>${p}</li>`).join('') || ''}</ul>
+                </section>
+            ` : ''}
+
+            <section class="hero">
+                <div class="badge">${content.hero?.badge || ''}</div>
+                <h1>${content.hero?.title || ''}</h1>
+                <p>${content.hero?.description || ''}</p>
+                <div class="hero-stats">
+                    ${content.hero?.stats?.map(s => `<span>${s.label}: ${s.value}</span>`).join(' | ') || ''}
+                </div>
+            </section>
+
+            ${trendingCourses.length > 0 ? `
+                <section class="trending-courses">
+                    <h2>Trending Courses</h2>
+                    <div class="course-list">
+                        ${trendingCourses.map(c => `
+                            <article class="course-card">
+                                <h3>${c.title}</h3>
+                                <p>${c.category} ${c.level ? `| ${c.level}` : ''}</p>
+                                <p>Rating: ${c.rating} | Price: ₹${c.price}</p>
+                                <p>${c.duration} | ${c.facultyName}</p>
+                            </article>
+                        `).join('')}
+                    </div>
+                </section>
+            ` : ''}
+
+            <section class="online-exp">
+                <h2>${content.onlineExperience?.title || ''}</h2>
+                <p>${content.onlineExperience?.description || ''}</p>
+                <div class="features">
+                    ${content.onlineExperience?.features?.map(f => `
+                        <div class="feature">
+                            <h3>${f.title}</h3>
+                            <p>${f.description}</p>
+                        </div>
+                    `).join('') || ''}
+                </div>
+            </section>
+
+            <section class="alumni">
+                <h2>Our Alumni Work At</h2>
+                <ul>
+                    ${alumniList.map(a => `<li>${a.name}</li>`).join('')}
+                </ul>
+            </section>
+
+            ${faculties.length > 0 ? `
+                <section class="faculty">
+                    <h2>Expert Faculty</h2>
+                    <div class="faculty-list">
+                        ${faculties.slice(0, 10).map(f => `
+                            <div class="faculty-member">
+                                <h3>${f.name}</h3>
+                                <p>${f.designation}</p>
+                                <p>${f.specialization}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+            ` : ''}
+
+            ${content.whyChooseUs ? `
+                <section class="why-choose-us">
+                    <h2>${content.whyChooseUs.title || 'Why Choose Us'}</h2>
+                    <div class="stats-grid">
+                        ${content.whyChooseUs.statsGrid?.map(s => `<div><strong>${s.value}</strong> ${s.label}</div>`).join('') || ''}
+                    </div>
+                    <h3>${content.whyChooseUs.featuresTitle || 'What You Get'}</h3>
+                    <ul>${content.whyChooseUs.featuresList?.map(f => `<li>${f}</li>`).join('') || ''}</ul>
+                </section>
+            ` : ''}
+
+            ${content.testimonials ? `
+                <section class="testimonials">
+                    <h2>${content.testimonials.title || 'Student Success Stories'}</h2>
+                    <div class="testimonial-list">
+                        ${content.testimonials.list?.map(t => `
+                            <blockquote>
+                                <p>"${t.text}"</p>
+                                <cite>— ${t.name}, ${t.rank}</cite>
+                            </blockquote>
+                        `).join('') || ''}
+                    </div>
+                </section>
+            ` : ''}
+
+            ${content.videoCarousel ? `
+                <section class="video-carousel">
+                    <h2>${content.videoCarousel.title || 'Watch Our Classes in Action'}</h2>
+                    <div class="video-list">
+                        ${content.videoCarousel.videos?.map(v => `
+                            <div class="video-item">
+                                <h3>${v.title}</h3>
+                                <p>${v.description || ''}</p>
+                            </div>
+                        `).join('') || ''}
+                    </div>
+                </section>
+            ` : ''}
+
+            ${content.learningEcosystem ? `
+                <section class="learning-ecosystem">
+                    <h2>${content.learningEcosystem.title || 'Complete Learning Ecosystem'}</h2>
+                    <div class="ecosystem-features">
+                        ${content.learningEcosystem.features?.map(f => `
+                            <div class="eco-feature">
+                                <h3>${f.title}</h3>
+                                <p>${f.description}</p>
+                            </div>
+                        `).join('') || ''}
+                    </div>
+                </section>
+            ` : ''}
+
+            ${content.footerCta ? `
+                <section class="footer-cta">
+                    <h2>${content.footerCta.title}</h2>
+                    <p>${content.footerCta.description}</p>
+                </section>
+            ` : ''}
+
+            ${content.globalFooter ? `
+                <footer class="footer">
+                    <p>${content.globalFooter.description}</p>
+                    <div class="contact-info">
+                        <p>${content.globalFooter.contactInfo?.address}</p>
+                        <p>${content.globalFooter.contactInfo?.phone}</p>
+                        <p>${content.globalFooter.contactInfo?.email}</p>
+                    </div>
+                </footer>
+            ` : ''}
+        </main>
+    `;
+};
 
 // Body parser
 app.use(express.json());
@@ -257,26 +516,56 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/careers', careerRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
-app.use('/api/branch-enquiries', branchEnquiryRoutes);
+app.use('/api/branch-enquiry', branchEnquiryRoutes);
+app.use('/api/branch-enquiries', branchEnquiryRoutes); // plural alias used by frontend
+app.use('/api/alumni', alumniRoutes);
+app.use('/api/alumni-work-at', alumniWorkAtRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/erp-course-mappings', erpCourseMappingRoutes);
 
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const distPath = path.resolve(__dirname, '../../dist');
 
-// Route handler for blog detail page to inject meta tags
-app.get('/blog/:slug', async (req, res) => {
+// SEO Routes
+app.get('/', async (req, res) => {
     try {
-        const blog = await Blog.findOne({ slug: req.params.slug }).populate('category');
+        const [content, trendingCourses, faculties] = await Promise.all([
+            LandingPageContent.findOne(),
+            Course.find({ status: "Active" }).limit(10),
+            Faculty.find().limit(10)
+        ]);
 
         const indexPath = path.join(distPath, 'index.html');
         if (!fs.existsSync(indexPath)) {
-            console.error('index.html not found at:', indexPath);
             return res.status(404).send('Frontend build not found');
         }
 
         let html = fs.readFileSync(indexPath, 'utf8');
+        if (content) {
+            html = injectMeta(html, {
+                title: content.metaTitle || "JK Shah Classes - India's Leading CA Coaching Institute",
+                description: content.metaDescription || "JK Shah Classes is India's top coaching institute for CA, CS, and CMA.",
+                keywords: content.metaKeywords || ""
+            });
+            html = injectBody(html, generateHomeHTML(content, trendingCourses, faculties));
+        }
+        res.send(html);
+    } catch (error) {
+        console.error('Home SEO error:', error);
+        res.sendFile(path.join(distPath, 'index.html'));
+    }
+});
 
+app.get('/blog/:slug', async (req, res) => {
+    try {
+        const blog = await Blog.findOne({ slug: req.params.slug }).populate('category');
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
+
+        let html = fs.readFileSync(indexPath, 'utf8');
         if (blog) {
             html = injectMeta(html, {
                 title: blog.metaTitle || `${blog.title} | JK Shah Classes`,
@@ -285,100 +574,101 @@ app.get('/blog/:slug', async (req, res) => {
             });
             html = injectBody(html, generateBlogHTML(blog));
         }
-
         res.send(html);
     } catch (error) {
-        console.error('Blog meta injection error:', error);
+        console.error('Blog SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
     }
 });
 
-// Route handler for course detail pages to inject meta tags from category/subcategory
 app.get(['/course/:slug', '/courses/india/:slug', '/courses/foreign/:slug'], async (req, res) => {
     try {
         const { slug } = req.params;
-        console.log('Course SEO request for slug:', slug);
         const titlePattern = slug.replace(/-/g, ' ');
         const course = await Course.findOne({
             title: { $regex: new RegExp(`^${titlePattern}$`, 'i') }
         });
 
         const indexPath = path.join(distPath, 'index.html');
-        if (!fs.existsSync(indexPath)) {
-            console.error('index.html not found at:', indexPath);
-            return res.status(404).send('Frontend build not found');
-        }
+        if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
 
         let html = fs.readFileSync(indexPath, 'utf8');
-
         if (course) {
-            console.log('Course found:', course.title, 'subCategory:', course.subCategory);
-            // Find associated sub-category to get its meta tags as requested
             const category = await Category.findOne({ name: course.subCategory });
-
-            if (category) {
-                console.log('Category found for SEO:', category.name);
-            } else {
-                console.log('Category NOT found for SEO name:', course.subCategory);
-            }
-
             html = injectMeta(html, {
                 title: course.metaTitle || (category && category.metaTitle) || `${course.title} | JK Shah Classes`,
                 description: course.metaDescription || (category && category.metaDescription) || (course.description?.replace(/<[^>]*>?/gm, '').substring(0, 160) || ""),
                 keywords: course.metaKeywords || (category && category.metaKeywords) || ""
             });
             html = injectBody(html, generateCourseHTML(course));
-        } else {
-            console.log('Course NOT found for slug pattern:', titlePattern);
         }
-
         res.send(html);
     } catch (error) {
-        console.error('Course meta injection error:', error);
+        console.error('Course SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
     }
 });
 
-const LandingPageContent = require('./models/LandingPageContent');
-
-app.get('/', async (req, res) => {
+app.get('/branches', async (req, res) => {
     try {
         const content = await LandingPageContent.findOne();
         const indexPath = path.join(distPath, 'index.html');
-
-        if (!fs.existsSync(indexPath)) {
-            return res.status(404).send('Frontend build not found');
-        }
+        if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
 
         let html = fs.readFileSync(indexPath, 'utf8');
-
         if (content) {
             html = injectMeta(html, {
-                title: content.metaTitle || "JK Shah Classes - India's Leading CA Coaching Institute",
-                description: content.metaDescription || "JK Shah Classes is India's top coaching institute for CA, CS, and CMA.",
-                keywords: content.metaKeywords || ""
+                title: "Our Branches | JK Shah Classes",
+                description: content.branchPage?.header?.description || "Find a JK Shah Classes branch near you. With over 35+ branches pan India.",
+                keywords: "CA Coaching Branches, JK Shah Classes Locations, commerce coaching centers"
             });
-            html = injectBody(html, generateHomeHTML(content));
+            html = injectBody(html, generateBranchLocatorHTML(content));
         }
-
         res.send(html);
     } catch (error) {
-        console.error('Home meta injection error:', error);
+        console.error('Branches SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
     }
 });
 
-// Serve static files from the React app dist folder
-console.log('Serving static files from:', distPath);
+app.get('/branch/:slug', async (req, res) => {
+    try {
+        const content = await LandingPageContent.findOne();
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
+
+        let html = fs.readFileSync(indexPath, 'utf8');
+        if (content && content.branches) {
+            const branch = content.branches.find(b => b.name.toLowerCase().replace(/\s+/g, '-') === req.params.slug);
+            if (branch) {
+                const batches = await Batch.find({
+                    location: branch.name,
+                    mode: 'Face to Face'
+                }).limit(20);
+                html = injectMeta(html, {
+                    title: branch.metaTitle || `${branch.name} | JK Shah Classes`,
+                    description: branch.metaDescription || `Visit JK Shah Classes ${branch.name} at ${branch.address}. Expert faculty for CA, CS, and CMA coaching.`,
+                    keywords: branch.metaKeywords || `${branch.name}, CA Coaching in ${branch.city}, commerce classes ${branch.city}`
+                });
+                html = injectBody(html, generateBranchDetailHTML(branch, batches));
+            }
+        }
+        res.send(html);
+    } catch (error) {
+        console.error('Branch detail SEO error:', error);
+        res.sendFile(path.join(distPath, 'index.html'));
+    }
+});
+
+// Static files
 app.use(express.static(distPath));
 
-// For any other route, serve the index.html (SPA Fallback)
+// Final Fallback
 app.get(/^(?!\/api).+/, (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
 });
 
 const PORT = +process.env.PORT || 5000;
-
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });

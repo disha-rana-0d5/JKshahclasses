@@ -11,23 +11,46 @@ import {
   DropdownMenuTrigger
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { LayoutDashboard, LogOut, User as UserIcon, Bell, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { LayoutDashboard, LogOut, User as UserIcon, Bell, Settings, ChevronDown, ChevronRight, ChevronUp, Book, Newspaper, Zap, FileText, History, Users, GraduationCap, Briefcase, Heart, Globe } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useCourseContext } from "../admin/context/CourseContext";
+import { useCart } from "../context/CartContext";
+import { ShoppingCart as CartIcon } from "lucide-react";
+import { CartDrawer } from "./CartDrawer";
 import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "./ui/dropdown-menu";
+import React from "react";
 import { landingPageApi } from "../api/api";
+import { generateSlug } from "../admin/utils/slugify";
 
 
 export function Navigation() {
   const { categories, courses } = useCourseContext();
+  const { cartCount, setIsDrawerOpen } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const [announcement, setAnnouncement] = useState({ messages: [] as string[], show: false });
+  const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = (name: string) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setActiveDropdown(name);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setActiveDropdown(null);
+    }, 150);
+  };
 
   useEffect(() => {
     const fetchAnnouncement = async () => {
@@ -57,6 +80,9 @@ export function Navigation() {
     navigate("/");
     window.location.reload();
   };
+  const toggleExpanded = (name: string) => {
+    setExpandedItem(expandedItem === name ? null : name);
+  };
 
   const handleNavClick = () => {
     setIsOpen(false);
@@ -69,20 +95,56 @@ export function Navigation() {
     }
     return location.pathname.startsWith(path);
   }
-
   // Build dynamic navigation items
   const dynamicNavigationItems = [
     // { name: "Home", href: "/" },
     {
       name: "About Us",
-      href: "/about-us",
+      href: "/about/history",
+      isMega: true,
       children: [
-        { name: "Our History", href: "/about/history" },
-        { name: "Mission", href: "/about/mission" },
-        { name: "Value", href: "/about/value" },
-        { name: "CSR", href: "/about/csr" },
-        { name: "In Press", href: "/about/press" },
-        { name: "Circulars", href: "/about/circulars" },
+        {
+          name: "Our History",
+          href: "/about/history",
+          description: "The journey of India's leading CA coaching institute since 1983.",
+          icon: History,
+          color: "primary"
+        },
+        {
+          name: "Alumni",
+          href: "/alumni",
+          description: "Success stories of our students making a mark across industries.",
+          icon: Users,
+          color: "accent"
+        },
+        // {
+        //   name: "Faculty",
+        //   href: "/faculty",
+        //   description: "Learn from some of the best minds in professional education.",
+        //   icon: GraduationCap,
+        //   color: "primary"
+        // },
+        {
+          name: "Careers",
+          href: "/careers",
+          description: "Join our team and build a rewarding professional career.",
+          icon: Briefcase,
+          color: "accent"
+        },
+        {
+          name: "CSR",
+          href: "/about/csr",
+          description: "Our commitment to giving back to the community.",
+          icon: Heart,
+          color: "primary"
+        },
+        // {
+        //   name: "Media Coverage",
+        //   href: "/about/press",
+        //   description: "JK Shah Classes featured in news and media coverage.",
+        //   icon: Globe,
+        //   color: "accent"
+        // }
       ]
     },
     {
@@ -90,28 +152,88 @@ export function Navigation() {
       href: "/courses",
       children: categories
         .filter(c => !c.parent)
-        .map(parent => ({
-          name: parent.name,
-          href: `/courses/category/${parent._id}`,
-          children: categories
-            .filter(c => c.parent === parent._id)
-            .map(child => {
+        .map(parent => {
+          const subCategories = categories.filter(c => c.parent === parent._id);
+
+          if (subCategories.length === 0) {
+            // No subcategories, find the first course in this category
+            const course = courses.find(course => course.category === parent.name);
+            return {
+              name: parent.name,
+              href: course ? `/course/${generateSlug(course.title)}` : `/courses/category/${parent._id}`
+            };
+          }
+
+          return {
+            name: parent.name,
+            href: `/courses/category/${parent._id}`,
+            children: subCategories.map(child => {
               const course = courses.find(course => course.subCategory === child.name);
               return {
                 name: child.name,
-                href: course ? `/course/${course.title.toLowerCase().replace(/ /g, '-')}` : `/courses/category/${child._id}`
+                href: course ? `/course/${generateSlug(course.title)}` : `/courses/category/${child._id}`
               };
             })
-        }))
+          };
+        })
     },
     { name: "Branches", href: "/branches" },
-    { name: "Our Achievers", href: "/rank-holders" },
-    { name: "Faculty", href: "/faculty" },
+    {
+      name: "Our Achievers",
+      // href: "/ourachievers",
+      children: [
+        { name: "Alumni", href: "/alumni" },
+        { name: "Hall of Fame", href: "/ourachievers" },
+      ]
+    },
+    // { name: "Faculty", href: "/faculty" },
     // { name: "Placement", href: "/live-sessions" },
-    { name: "Placement", href: "/placements", requiresAuth: true },
-    { name: "Careers", href: "/careers" },
-    { name: "Blog", href: "/blog" },
-    // { name: "Resources", href: "/resources" },
+    { name: "Placement", href: "/placements" },
+    // { name: "Careers", href: "/careers", requiresAuth: true },
+    // { name: "Blog", href: "/blog" },
+    // {
+    //   name: "Resources",
+    //   href: "/resources",
+    //   isMega: true,
+    //   children: [
+    //     {
+    //       name: "Books & Study Material",
+    //       href: "/resources/books",
+    //       description: "Curated study kits, textbooks, and practice manuals.",
+    //       icon: Book,
+    //       color: "primary",
+    //       isComingSoon: true
+    //     },
+    //     {
+    //       name: "Test Series",
+    //       href: "/resources/test-series",
+    //       description: "All-India mock tests with detailed performance analytics.",
+    //       icon: FileText,
+    //       color: "accent"
+    //     },
+    //     {
+    //       name: "Blogs",
+    //       href: "/blog",
+    //       description: "Expert exam preparation tips and subject updates.",
+    //       icon: Newspaper,
+    //       color: "primary"
+    //     },
+    //     // {
+    //     //   name: "Announcements",
+    //     //   href: "/resources/announcements",
+    //     //   description: "Important exam notifications and class schedules.",
+    //     //   icon: Bell,
+    //     //   color: "accent"
+    //     // },
+    //     {
+    //       name: "Free Resources",
+    //       href: "/resources/free",
+    //       description: "Downloadable notes, charts, and video tutorials.",
+    //       icon: Zap,
+    //       color: "primary"
+    //     }
+    //   ]
+    // },
     // { name: "Test Series", href: "/test-series" },
   ];
 
@@ -120,7 +242,7 @@ export function Navigation() {
       {/* Announcement Marquee Strip */}
       {announcement.show && announcement.messages.length > 0 && (
         <div className="bg-primary text-white py-1.5 overflow-hidden border-b border-white/10 relative z-[60]">
-          <div className="max-w-[2000px] mx-auto relative flex items-center">
+          <div className="max-w-full mx-auto relative flex items-center px-2">
             {/* <div className="flex items-center gap-2 bg-primary px-4 absolute left-0 z-10 shadow-[5px_0_10px_rgba(0,0,0,0.1)]">
               <Megaphone className="w-3.5 h-3.5 animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline">Latest:</span>
@@ -136,7 +258,7 @@ export function Navigation() {
           <style dangerouslySetInnerHTML={{
             __html: `
             @keyframes marquee {
-              0% { transform: translateX(100vw); }
+              0% { transform: translateX(100%); }
               100% { transform: translateX(-100%); }
             }
             .animate-marquee {
@@ -151,69 +273,121 @@ export function Navigation() {
       )}
 
       <nav className="bg-white/80 backdrop-blur-lg shadow-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto pl-0 pr-1 sm:px-4">
           <div className="flex justify-between items-center h-14">
             {/* Logo */}
             <div className="flex-shrink-0">
               <Link
                 to="/"
                 onClick={handleNavClick}
-                className="flex items-center gap-2 cursor-pointer"
+                className="flex items-center gap-1 sm:gap-2 cursor-pointer"
               >
                 <img
                   src="/uploads/2026/02/J K Shah_New logo 24-01.png"
                   alt="JK Shah Classes"
-                  className="h-14 w-auto object-contain -ml-3"
+                  className="h-10 sm:h-14 w-auto object-contain"
                 />
               </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex md:items-center md:space-x-0.5">
+            <div className="hidden lg:flex lg:items-center lg:space-x-0.5">
               {dynamicNavigationItems.map((item) => (
                 item.children ? (
-                  <DropdownMenu key={item.name}>
+                  <DropdownMenu
+                    key={item.name}
+                    open={activeDropdown === item.name}
+                    onOpenChange={(open) => !open && setActiveDropdown(null)}
+                  >
                     <DropdownMenuTrigger asChild>
-                      <button
-                        className={`px-3 py-1.5 rounded-md transition-all duration-200 text-sm relative flex items-center gap-1 ${isActive(item.href)
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground hover:bg-muted/50"
-                          }`}
-                      >
-                        {item.name}
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                        {isActive(item.href) && (
-                          <span className="absolute -bottom-[9px] left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></span>
-                        )}
-                      </button>
+                      {item.href === "#" ? (
+                        <button
+                          onMouseEnter={() => handleMouseEnter(item.name)}
+                          onMouseLeave={handleMouseLeave}
+                          className={`px-3 py-1.5 rounded-md transition-all duration-200 text-sm relative flex items-center gap-1 ${isActive(item.href)
+                            ? "bg-primary text-primary-foreground"
+                            : "text-foreground hover:bg-muted/50"
+                            }`}
+                        >
+                          {item.name}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </button>
+                      ) : (
+                        <Link
+                          to={(item as any).requiresAuth && !isAuthenticated ? "/login" : item.href}
+                          onMouseEnter={() => handleMouseEnter(item.name)}
+                          onMouseLeave={handleMouseLeave}
+                          className={`px-3 py-1.5 rounded-md transition-all duration-200 text-sm relative flex items-center gap-1 ${isActive(item.href)
+                            ? "bg-primary text-primary-foreground"
+                            : "text-foreground hover:bg-muted/50"
+                            }`}
+                        >
+                          {item.name}
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                          {isActive(item.href) && (
+                            <span className="absolute -bottom-[9px] left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></span>
+                          )}
+                        </Link>
+                      )}
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48">
-                      {item.children.map((child) => (
-                        child.children ? (
-                          <DropdownMenuSub key={child.name}>
-                            <DropdownMenuSubTrigger>
-                              <span>{child.name}</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              {child.children.map((subChild) => (
-                                <DropdownMenuItem
-                                  key={subChild.name}
-                                  onClick={() => navigate((subChild as any).requiresAuth && !isAuthenticated ? "/login" : subChild.href)}
-                                >
-                                  {subChild.name}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                        ) : (
-                          <DropdownMenuItem
-                            key={child.name}
-                            onClick={() => navigate((child as any).requiresAuth && !isAuthenticated ? "/login" : child.href)}
-                          >
-                            {child.name}
-                          </DropdownMenuItem>
-                        )
-                      ))}
+                    <DropdownMenuContent
+                      align="start"
+                      sideOffset={2}
+                      className={item.isMega ? "w-[600px] p-4" : "w-48"}
+                      onMouseEnter={() => handleMouseEnter(item.name)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      {item.isMega ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          {item.children.map((child: any) => (
+                            <DropdownMenuItem
+                              key={child.name}
+                              onClick={() => !child.isComingSoon && navigate((child as any).requiresAuth && !isAuthenticated ? "/login" : child.href)}
+                              className={`flex items-start gap-4 p-3 rounded-xl transition-all group ${child.isComingSoon ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50 focus:bg-muted/50 cursor-pointer"}`}
+                            >
+                              <div className={`bg-${child.color}/10 rounded-lg p-2 ${!child.isComingSoon && `group-hover:bg-${child.color}/20`} transition-colors`}>
+                                <child.icon className={`w-5 h-5 text-${child.color}`} />
+                              </div>
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <p className={`text-sm font-bold text-foreground ${!child.isComingSoon && 'group-hover:text-primary'} transition-colors flex items-center gap-2 flex-wrap`}>
+                                  <span>{child.name}</span>
+                                  {child.isComingSoon && (
+                                    <span className="text-[9px] bg-[#373081] text-accent px-2 py-0.5 rounded-full font-black uppercase tracking-wider whitespace-nowrap flex-shrink-0">Coming Soon</span>
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{child.description}</p>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      ) : (
+                        item.children.map((child) => (
+                          child.children ? (
+                            <DropdownMenuSub key={child.name}>
+                              <DropdownMenuSubTrigger>
+                                <span>{child.name}</span>
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {child.children.map((subChild) => (
+                                  <DropdownMenuItem
+                                    key={subChild.name}
+                                    onClick={() => navigate((subChild as any).requiresAuth && !isAuthenticated ? "/login" : subChild.href)}
+                                  >
+                                    {subChild.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          ) : (
+                            <DropdownMenuItem
+                              key={child.name}
+                              onClick={() => navigate((child as any).requiresAuth && !isAuthenticated ? "/login" : child.href)}
+                            >
+                              {child.name}
+                            </DropdownMenuItem>
+                          )
+                        ))
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
@@ -235,26 +409,41 @@ export function Navigation() {
             </div>
 
             {/* Login/Sign Up or Profile - Desktop */}
-            <div className="hidden md:flex md:items-center md:space-x-2">
+            <div className="hidden lg:flex lg:items-center lg:space-x-2">
+              {/* Cart Icon */}
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <CartIcon className="w-5 h-5 text-gray-600" />
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 bg-[#EF4444] text-white text-[10px] font-bold min-w-[17px] h-[17px] flex items-center justify-center rounded-full px-1">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+
+              <div className="h-6 w-px bg-border mx-1" />
+
               {!isAuthenticated ? (
                 <>
                   <Link to="/login">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-border text-foreground hover:bg-muted hover:!text-foreground text-sm h-8"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm h-8"
                     >
                       Login
                     </Button>
                   </Link>
-                  <Link to="/signup">
+                  {/* <Link to="/signup">
                     <Button
                       size="sm"
                       className="bg-primary text-primary-foreground hover:bg-primary/90 text-sm h-8"
                     >
                       Sign Up
                     </Button>
-                  </Link>
+                  </Link> */}
                 </>
               ) : (
                 <div className="flex items-center gap-2">
@@ -309,8 +498,6 @@ export function Navigation() {
                   </DropdownMenuContent>
                 </DropdownMenu> */}
 
-                  <div className="h-6 w-px bg-border mx-1" />
-
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -352,79 +539,159 @@ export function Navigation() {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="inline-flex items-center justify-center p-1.5 rounded-md text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent"
-                aria-expanded={isOpen}
-              >
-                <span className="sr-only">Open main menu</span>
-                {isOpen ? (
-                  <X className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {isAuthenticated && (
-                      <Avatar className="h-7 w-7">
-                        <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
-                          {user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+            <div className="lg:hidden">
+              <div className="flex items-center gap-2">
+                {!isOpen && (
+                  <button
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="relative p-1.5 text-muted-foreground"
+                  >
+                    <CartIcon className="w-5 h-5 text-gray-600" />
+                    {cartCount > 0 && (
+                      <span className="absolute top-0 right-0 bg-[#EF4444] text-white text-[9px] font-bold min-w-[16px] h-[16px] flex items-center justify-center rounded-full px-0.5">
+                        {cartCount}
+                      </span>
                     )}
-                    <Menu className="h-5 w-5" aria-hidden="true" />
-                  </div>
+                  </button>
                 )}
-              </button>
+
+                {!isOpen && isAuthenticated && (
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                      {user.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+
+                <button
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="inline-flex items-center justify-center p-1.5 rounded-md text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent"
+                  aria-expanded={isOpen}
+                >
+                  <span className="sr-only">Open main menu</span>
+                  {isOpen ? (
+                    <X className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <Menu className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
+        <CartDrawer />
+
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden border-t border-border bg-white/95 backdrop-blur-lg">
-            <div className="px-3 pt-2 pb-2 space-y-0.5">
+          <div className="lg:hidden border-t border-border bg-white shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="px-3 pt-2 pb-6 space-y-0.5">
               {dynamicNavigationItems.map((item) => (
-                <div key={item.name}>
+                <div
+                  key={item.name}
+                  onMouseLeave={() => setExpandedItem(null)}
+                >
                   {item.children ? (
                     <div className="space-y-0.5">
-                      <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        {item.name}
+                      <div
+                        className={`group flex items-center justify-between w-full rounded-md transition-all ${expandedItem === item.name ? "bg-primary/5" : "hover:bg-muted"
+                          }`}
+                        onMouseEnter={() => setExpandedItem(item.name)}
+                      >
+                        <Link
+                          to={item.href}
+                          onClick={handleNavClick}
+                          className={`flex-1 px-3 py-2 font-medium text-sm transition-colors ${expandedItem === item.name ? "text-primary" : "text-foreground"
+                            }`}
+                        >
+                          {item.name}
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleExpanded(item.name);
+                          }}
+                          className={`px-4 py-2 border-l border-border/50 text-muted-foreground hover:text-primary transition-colors ${expandedItem === item.name ? "text-primary bg-primary/10" : ""}`}
+                        >
+                          {expandedItem === item.name ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
-                      {item.children.map((child) => (
-                        <div key={child.name} className="space-y-0.5">
-                          {child.children ? (
-                            <>
-                              <div className="px-6 py-1.5 text-xs font-medium text-muted-foreground/80">
-                                {child.name}
-                              </div>
-                              {child.children.map((subChild) => (
+
+                      {expandedItem === item.name && (
+                        <div className="mt-1 ml-2 pl-2 border-l-2 border-primary/10 space-y-0.5 animate-in slide-in-from-top-1 duration-200">
+                          {item.children.map((child: any) => (
+                            <div key={child.name} className="space-y-0.5">
+                              {child.children ? (
+                                <>
+                                  <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                                    {child.name}
+                                  </div>
+                                  {child.children.map((subChild: any) => (
+                                    <Link
+                                      key={subChild.name}
+                                      to={(subChild as any).requiresAuth && !isAuthenticated ? "/login" : subChild.href}
+                                      onClick={handleNavClick}
+                                      className={`block w-full text-left px-6 py-2 rounded-md transition-all duration-200 text-sm ${isActive(subChild.href)
+                                        ? "bg-primary text-primary-foreground"
+                                        : "text-foreground hover:bg-muted"
+                                        }`}
+                                    >
+                                      {subChild.name}
+                                    </Link>
+                                  ))}
+                                </>
+                              ) : child.isComingSoon ? (
+                                <div
+                                  key={child.name}
+                                  className="flex items-start gap-4 w-full text-left px-3 py-3 rounded-md opacity-60 grayscale-[0.5]"
+                                >
+                                  {child.icon && (
+                                    <div className={`p-1.5 rounded-lg bg-${child.color}/10 mt-0.5`}>
+                                      <child.icon className={`h-4 w-4 text-${child.color}`} />
+                                    </div>
+                                  )}
+                                  <div className="space-y-0.5 min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-foreground flex items-center gap-2 flex-wrap">
+                                      <span>{child.name}</span>
+                                      <span className="text-[9px] bg-[#373081] text-accent px-2 py-0.5 rounded-full font-black uppercase tracking-wider whitespace-nowrap flex-shrink-0">Coming Soon</span>
+                                    </p>
+                                    {child.description && (
+                                      <p className="text-[10px] opacity-70 leading-tight">{child.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
                                 <Link
-                                  key={subChild.name}
-                                  to={(subChild as any).requiresAuth && !isAuthenticated ? "/login" : subChild.href}
+                                  key={child.name}
+                                  to={(child as any).requiresAuth && !isAuthenticated ? "/login" : child.href}
                                   onClick={handleNavClick}
-                                  className={`block w-full text-left px-9 py-2 rounded-md transition-all duration-200 text-sm ${isActive(subChild.href)
+                                  className={`flex items-start gap-4 w-full text-left px-3 py-3 rounded-md transition-all duration-200 ${isActive(child.href)
                                     ? "bg-primary text-primary-foreground"
                                     : "text-foreground hover:bg-muted"
                                     }`}
                                 >
-                                  {subChild.name}
+                                  {child.icon && (
+                                    <div className={`p-1.5 rounded-lg bg-${child.color}/10 mt-0.5`}>
+                                      <child.icon className={`h-4 w-4 text-${child.color}`} />
+                                    </div>
+                                  )}
+                                  <div className="space-y-0.5">
+                                    <p className="text-sm font-bold">{child.name}</p>
+                                    {child.description && (
+                                      <p className="text-[10px] opacity-70 leading-tight">{child.description}</p>
+                                    )}
+                                  </div>
                                 </Link>
-                              ))}
-                            </>
-                          ) : (
-                            <Link
-                              key={child.name}
-                              to={(child as any).requiresAuth && !isAuthenticated ? "/login" : child.href}
-                              onClick={handleNavClick}
-                              className={`block w-full text-left px-6 py-2 rounded-md transition-all duration-200 text-sm ${isActive(child.href)
-                                ? "bg-primary text-primary-foreground"
-                                : "text-foreground hover:bg-muted"
-                                }`}
-                            >
-                              {child.name}
-                            </Link>
-                          )}
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   ) : (
                     <Link

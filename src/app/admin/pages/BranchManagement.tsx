@@ -4,7 +4,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
-import { landingPageApi, batchApi, categoryApi, levelApi, facultyApi } from "../../api/api";
+import { landingPageApi, batchApi, categoryApi, levelApi, facultyApi, branchEnquiryApi, placementApi, careerApi } from "../../api/api";
 import { toast } from "sonner";
 import { Loader2, Save, MapPin, Plus, Trash2, Edit, Type, Layout, Clock, BookOpen, GraduationCap, Laptop, Video, Trash, Landmark, Building, Building2, Castle, Church, Factory, Home, Hotel, Mountain, Store, Trees, University, Warehouse, MapPinned, Globe, Compass, Tent, School, TowerControl } from "lucide-react";
 import { Textarea } from "../../components/ui/textarea";
@@ -13,22 +13,27 @@ import { ImageUpload } from "../../components/ImageUpload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Badge } from "../../components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../../components/ui/command";
-import { Check, ChevronsUpDown, X, Calendar as CalendarIcon } from "lucide-react";
+import { Check, ChevronsUpDown, X, Calendar as CalendarIcon, FileUp, FileDown, Download } from "lucide-react";
 import { cn } from "../../components/ui/utils";
 import { format } from "date-fns";
 import { Calendar } from "../../components/ui/calendar";
 import { CitySelectorModal } from "../../components/modals/CitySelectorModal";
+import { useCourseContext } from "../context/CourseContext";
 
 
 
 export function BranchManagement() {
+    const { allCourses, allCategories } = useCourseContext();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [content, setContent] = useState<any>(null);
-    const [expandedBranch, setExpandedBranch] = useState<number | null>(null);
     const [batches, setBatches] = useState<any[]>([]);
+    const [enquiries, setEnquiries] = useState<any[]>([]);
+    const [placements, setPlacements] = useState<any[]>([]);
+    const [careerListings, setCareerListings] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [levels, setLevels] = useState<any[]>([]);
     const [faculties, setFaculties] = useState<any[]>([]);
@@ -43,18 +48,46 @@ export function BranchManagement() {
         examAttempt: ""
     });
     const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
+    const [editingBranchIdx, setEditingBranchIdx] = useState<number | null>(null);
+    const [branchFormData, setBranchFormData] = useState<any>({
+        name: "",
+        city: "",
+        state: "",
+        pincode: "",
+        address: "",
+        phone: "",
+        email: "",
+        timings: "",
+        students: "",
+        image: "",
+        courses: [],
+        faculties: [],
+        mapUrl: "",
+        metaTitle: "",
+        metaDescription: "",
+        metaKeywords: ""
+    });
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [selectedDays, setSelectedDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
     const [startTime, setStartTime] = useState("07:00");
     const [endTime, setEndTime] = useState("13:00");
     const [isAddingBatch, setIsAddingBatch] = useState(false);
+    const [isSavingBranch, setIsSavingBranch] = useState(false);
     const [isCityModalOpen, setIsCityModalOpen] = useState(false);
     const [activeBranchIndex, setActiveBranchIndex] = useState<number | null>(null);
+    const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
     const formRef = useRef<HTMLDivElement>(null);
+    const branchFormRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         fetchContent();
         fetchBatches();
+        fetchEnquiries();
+        fetchPlacements();
+        fetchCareerListings();
         fetchMetadata();
     }, []);
 
@@ -86,9 +119,10 @@ export function BranchManagement() {
             const [catRes, levelRes, facultyRes] = await Promise.all([
                 categoryApi.getCategories(),
                 levelApi.getLevels(),
-                facultyApi.getFaculties()
+                facultyApi.getFaculties({ limit: 1000 })
             ]);
             if (catRes.ok && catRes.data.success) {
+                // Keep categories for other potential uses, but we'll use allCourses for modules
                 setCategories(catRes.data.data.filter((c: any) => c.parent));
             }
             if (levelRes.ok && levelRes.data.success) {
@@ -111,6 +145,39 @@ export function BranchManagement() {
             }
         } catch (error) {
             console.error("Error fetching batches:", error);
+        }
+    };
+
+    const fetchEnquiries = async () => {
+        try {
+            const { ok, data } = await branchEnquiryApi.getBranchEnquiries();
+            if (ok && data.success) {
+                setEnquiries(data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching enquiries:", error);
+        }
+    };
+
+    const fetchPlacements = async () => {
+        try {
+            const { ok, data } = await placementApi.getAdminPlacements();
+            if (ok && data.success) {
+                setPlacements(data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching placements:", error);
+        }
+    };
+
+    const fetchCareerListings = async () => {
+        try {
+            const { ok, data } = await careerApi.getAdminListings();
+            if (ok && data.success) {
+                setCareerListings(data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching career listings:", error);
         }
     };
 
@@ -190,49 +257,184 @@ export function BranchManagement() {
     };
 
     const updateBranchField = (index: number, field: string, value: any) => {
-        let finalValue = value;
-        if (field === 'mapUrl' && typeof value === 'string' && value.trim().startsWith('<iframe')) {
-            const srcMatch = value.match(/src=["']([^"']+)["']/);
-            if (srcMatch && srcMatch[1]) {
-                finalValue = srcMatch[1];
-            }
-        }
-
         setContent((prev: any) => {
             const newBranches = [...(prev.branches || [])];
-            newBranches[index] = { ...newBranches[index], [field]: finalValue };
+            newBranches[index] = { ...newBranches[index], [field]: value };
             return { ...prev, branches: newBranches };
         });
     };
 
     const addBranch = () => {
-        const newId = content.branches && content.branches.length > 0
-            ? Math.max(...content.branches.map((b: any) => b.id || 0)) + 1
-            : 1;
-
-        const newBranch = {
-            id: newId,
+        setEditingBranchIdx(null);
+        setBranchFormData({
             name: "New Branch",
             city: "City",
+            state: "",
+            pincode: "",
             address: "",
+            phone: "",
+            email: "",
             timings: "Mon-Sat: 8:00 AM - 8:00 PM",
-            mapUrl: "",
+            students: "",
+            image: "https://images.unsplash.com/photo-1497366216548-37526070297c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600",
             courses: [],
-            image: "https://images.unsplash.com/photo-1497366216548-37526070297c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=600"
-        };
+            faculties: [],
+            mapUrl: "",
+            metaTitle: "",
+            metaDescription: "",
+            metaKeywords: ""
+        });
 
-        setContent((prev: any) => ({
-            ...prev,
-            branches: [newBranch, ...(prev.branches || [])]
-        }));
-        setExpandedBranch(newId); // Expand the new one
+        setTimeout(() => {
+            if (branchFormRef.current) {
+                branchFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
     };
 
-    const removeBranch = (index: number) => {
-        setContent((prev: any) => {
-            const newBranches = prev.branches.filter((_: any, i: number) => i !== index);
-            return { ...prev, branches: newBranches };
-        });
+    const handleEditBranchLoc = (index: number) => {
+        const branch = content.branches[index];
+        setBranchFormData({ ...branch });
+        setEditingBranchIdx(index);
+
+        setTimeout(() => {
+            if (branchFormRef.current) {
+                branchFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+    };
+
+    const handleSaveBranch = async () => {
+        if (!branchFormData.name) {
+            toast.error("Branch name is required");
+            return;
+        }
+
+        try {
+            setIsSavingBranch(true);
+            let updatedBranches = [...(content.branches || [])];
+
+            if (editingBranchIdx !== null) {
+                updatedBranches[editingBranchIdx] = branchFormData;
+            } else {
+                const newId = updatedBranches.length > 0
+                    ? Math.max(...updatedBranches.map((b: any) => b.id || 0)) + 1
+                    : 1;
+                updatedBranches = [{ ...branchFormData, id: newId }, ...updatedBranches];
+            }
+
+            const updatedContent = { ...content, branches: updatedBranches };
+            const { ok, data } = await landingPageApi.updateLandingContent(updatedContent);
+
+            if (ok && data.success) {
+                toast.success(editingBranchIdx !== null ? "Branch updated successfully" : "Branch added successfully");
+                setContent(data.data);
+                setEditingBranchIdx(null);
+                setBranchFormData({
+                    name: "",
+                    city: "",
+                    state: "",
+                    pincode: "",
+                    address: "",
+                    phone: "",
+                    email: "",
+                    timings: "",
+                    students: "",
+                    image: "",
+                    courses: [],
+                    faculties: [],
+                    mapUrl: "",
+                    metaTitle: "",
+                    metaDescription: "",
+                    metaKeywords: ""
+                });
+            } else {
+                toast.error("Failed to update branch");
+            }
+        } catch (error) {
+            toast.error("Error saving branch");
+        } finally {
+            setIsSavingBranch(false);
+        }
+    };
+
+    const removeBranch = async (index: number) => {
+        if (!content.branches || !content.branches[index]) {
+            toast.error("Invalid branch index");
+            return;
+        }
+
+        const branch = content.branches[index];
+        const branchBatches = batches.filter(b => b.location === branch.name);
+        const branchEnquiries = enquiries.filter(e => e.branchName === branch.name);
+        const branchPlacements = placements.filter(p => p.location === branch.name);
+        const branchCareers = careerListings.filter(c => c.location === branch.name);
+
+        const hasDependencies = branchBatches.length > 0 ||
+            branchEnquiries.length > 0 ||
+            branchPlacements.length > 0 ||
+            branchCareers.length > 0;
+
+        if (hasDependencies) {
+            let message = `Cannot delete "${branch.name}". It has the following associated items:`;
+            if (branchBatches.length > 0) message += `\n- ${branchBatches.length} Batches`;
+            if (branchEnquiries.length > 0) message += `\n- ${branchEnquiries.length} Enquiries`;
+            if (branchPlacements.length > 0) message += `\n- ${branchPlacements.length} Placements`;
+            if (branchCareers.length > 0) message += `\n- ${branchCareers.length} Career Listings`;
+            message += `\n\nYou must delete or reassign all associated items before removing this branch.`;
+
+            alert(message);
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the location "${branch.name}"?`)) {
+            return;
+        }
+
+        const nextBranches = [...content.branches];
+        nextBranches.splice(index, 1);
+        const nextContent = { ...content, branches: nextBranches };
+
+        try {
+            setSaving(true);
+            const { ok, data } = await landingPageApi.updateLandingContent(nextContent);
+            if (ok && data.success) {
+                toast.success(`"${branch.name}" deleted successfully`);
+                setContent(data.data);
+            } else {
+                toast.error("Failed to delete branch from server");
+            }
+        } catch (error) {
+            toast.error("Error connecting to server");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDeleteAllBranches = async () => {
+        if (!content.branches || content.branches.length === 0) {
+            toast.error("No branches to delete");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to delete ALL branches? This action cannot be undone and may affect associated items if they rely on branch names.")) {
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const { ok, data } = await landingPageApi.deleteAllBranches();
+            if (ok && data.success) {
+                toast.success("All branches deleted successfully");
+                setContent(prev => ({ ...prev, branches: [] }));
+            } else {
+                toast.error(data.message || "Failed to delete all branches");
+            }
+        } catch (error) {
+            toast.error("Error connecting to server");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleBatchSubmit = async () => {
@@ -404,7 +606,74 @@ export function BranchManagement() {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            const { ok, data } = await landingPageApi.exportBranches();
+            if (ok && data) {
+                const url = window.URL.createObjectURL(data);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'branches_export.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                toast.success("Branches exported successfully");
+            } else {
+                toast.error("Failed to export branches");
+            }
+        } catch (error) {
+            toast.error("Error exporting branches");
+        }
+    };
+
+    const handleBulkUpload = async () => {
+        if (!selectedFile) {
+            toast.error("Please select a file first");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        setIsUploading(true);
+        try {
+            const { ok, data } = await landingPageApi.bulkUploadBranches(formData);
+            if (ok && data.success) {
+                toast.success(data.message || "Bulk upload successful");
+                setIsBulkDialogOpen(false);
+                setSelectedFile(null);
+                fetchContent(); // Refresh data
+            } else {
+                toast.error(data.message || "Failed to upload branches");
+                if (data.errors && data.errors.length > 0) {
+                    console.error("Bulk upload errors:", data.errors);
+                    toast.error(`First error: ${data.errors[0]}`);
+                }
+            }
+        } catch (error) {
+            toast.error("Error connecting to server");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const downloadSampleTemplate = () => {
+        const headers = "id,name,city,state,address,pincode,phone,email,timings,students,courses,facilities,faculties,image,mapUrl\n";
+        const sample = "0,Sample Branch,Mumbai,Maharashtra,123 Main St,400001,+91 1234567890,info@example.com,9AM-6PM,500+,Course A;Course B,AC;Library,Faculty A;Faculty B,https://example.com/image.jpg,https://maps.google.com/?q=sample\n";
+        const blob = new Blob([headers + sample], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'branches_template.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    };
+
     if (loading) {
+
         return <div className="flex justify-center items-center h-96"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
 
@@ -535,284 +804,406 @@ export function BranchManagement() {
                 </TabsContent>
 
                 <TabsContent value="locations" className="space-y-6 mt-6">
-                    <div className="flex justify-end mb-4">
+                    <div className="flex justify-end mb-4 gap-2">
                         <Button onClick={addBranch} variant="outline">
                             <Plus className="mr-2 h-4 w-4" />
                             Add Branch
                         </Button>
                     </div>
 
-                    <div className="grid gap-6">
-                        {content.branches?.map((branch: any, index: number) => (
-                            <Card key={index} className="overflow-hidden">
-                                <CardHeader className="bg-muted/10 flex flex-row items-center justify-between p-4 cursor-pointer" onClick={() => setExpandedBranch(expandedBranch === branch.id ? null : branch.id)}>
-                                    <div className="flex items-center gap-3">
-                                        <MapPin className="h-5 w-5 text-primary" />
-                                        <div>
-                                            <CardTitle className="text-base">{branch.name || "New Branch"}</CardTitle>
-                                            <p className="text-xs text-muted-foreground">{branch.city} - {branch.state}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setExpandedBranch(expandedBranch === branch.id ? null : branch.id); }}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); removeBranch(index); }}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
+                    <Card>
+                        <CardHeader ref={branchFormRef}>
+                            <CardTitle>{editingBranchIdx !== null ? `Edit Branch: ${branchFormData.name}` : "Add New Branch"}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Branch Name</Label>
+                                    <Input
+                                        value={branchFormData.name}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>City</Label>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full justify-between"
+                                        onClick={() => {
+                                            setActiveBranchIndex(-1); // Use -1 or special flag to indicate we're updating branchFormData
+                                            setIsCityModalOpen(true);
+                                        }}
+                                    >
+                                        {branchFormData.city || "Select City..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>State</Label>
+                                    <Input
+                                        value={branchFormData.state}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, state: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Pincode</Label>
+                                    <Input
+                                        value={branchFormData.pincode}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, pincode: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>Full Address</Label>
+                                    <Input
+                                        value={branchFormData.address}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, address: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Phone</Label>
+                                    <Input
+                                        value={branchFormData.phone}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, phone: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Email</Label>
+                                    <Input
+                                        value={branchFormData.email}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Timings</Label>
+                                    <Input
+                                        value={branchFormData.timings}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, timings: e.target.value })}
+                                        placeholder="e.g. Mon-Sat: 8:00 AM - 8:00 PM"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Students Count</Label>
+                                    <Input
+                                        value={branchFormData.students}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, students: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Google Maps URL</Label>
+                                    <Input
+                                        value={branchFormData.mapUrl}
+                                        onChange={(e) => setBranchFormData({ ...branchFormData, mapUrl: e.target.value })}
+                                        placeholder="Paste Google Maps URL or iframe here"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <ImageUpload
+                                        label="Branch Image"
+                                        value={branchFormData.image || ""}
+                                        onChange={(url) => setBranchFormData({ ...branchFormData, image: url })}
+                                        recommendedDimensions="800 x 600 px (4:3)"
+                                    />
+                                </div>
+                            </div>
 
-                                {expandedBranch === branch.id && (
-                                    <CardContent className="p-4 space-y-4 border-t">
-                                        {/* Branch Fields */}
-                                        <div className="grid md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Branch Name</Label>
-                                                <Input
-                                                    value={branch.name}
-                                                    onChange={(e) => updateBranchField(index, 'name', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>City</Label>
-                                                <Button
-                                                    variant="outline"
-                                                    className="w-full justify-between"
-                                                    onClick={() => {
-                                                        setActiveBranchIndex(index);
-                                                        setIsCityModalOpen(true);
-                                                    }}
-                                                >
-                                                    {branch.city || "Select City..."}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>State</Label>
-                                                <Input
-                                                    value={branch.state}
-                                                    onChange={(e) => updateBranchField(index, 'state', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Pincode</Label>
-                                                <Input
-                                                    value={branch.pincode}
-                                                    onChange={(e) => updateBranchField(index, 'pincode', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2 md:col-span-2">
-                                                <Label>Full Address</Label>
-                                                <Input
-                                                    value={branch.address}
-                                                    onChange={(e) => updateBranchField(index, 'address', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Phone</Label>
-                                                <Input
-                                                    value={branch.phone}
-                                                    onChange={(e) => updateBranchField(index, 'phone', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Email</Label>
-                                                <Input
-                                                    value={branch.email}
-                                                    onChange={(e) => updateBranchField(index, 'email', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Timings</Label>
-                                                <Input
-                                                    value={branch.timings}
-                                                    onChange={(e) => updateBranchField(index, 'timings', e.target.value)}
-                                                    placeholder="e.g. Mon-Sat: 8:00 AM - 8:00 PM"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Students Count</Label>
-                                                <Input
-                                                    value={branch.students}
-                                                    onChange={(e) => updateBranchField(index, 'students', e.target.value)}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <ImageUpload
-                                                    label="Branch Image"
-                                                    value={branch.image || ""}
-                                                    onChange={(url) => updateBranchField(index, 'image', url)}
-                                                    recommendedDimensions="800 x 600 px (4:3)"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2 pt-2 border-t">
-                                            <Label className="text-sm font-semibold">Available Courses</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className="w-full justify-between h-auto min-h-[44px] px-3 py-2 text-left font-normal border-slate-200"
-                                                    >
-                                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                                            {((branch.courses || branch.facilities) && (branch.courses || branch.facilities).length > 0) ? (
-                                                                (branch.courses || branch.facilities).map((course) => (
-                                                                    <Badge key={course} variant="secondary" className="pl-2 pr-1 py-1 flex items-center gap-1 bg-primary/5 text-primary border-primary/10">
-                                                                        <span className="text-[11px] font-medium">{course}</span>
-                                                                        <span
-                                                                            className="ml-1 p-0.5 cursor-pointer hover:bg-primary/20 rounded-full transition-colors flex items-center justify-center"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                const current = branch.courses || branch.facilities || [];
-                                                                                const next = current.filter((c) => c !== course);
-                                                                                updateBranchField(index, 'courses', next);
-                                                                            }}
-                                                                        >
-                                                                            <X className="w-3.5 h-3.5" />
-                                                                        </span>
-                                                                    </Badge>
-                                                                ))
-                                                            ) : (
-                                                                <span className="text-muted-foreground">Select courses offered at this branch...</span>
-                                                            )}
-                                                        </div>
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[400px] p-0" align="start">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search courses..." />
-                                                        <CommandList>
-                                                            <CommandEmpty>No courses found.</CommandEmpty>
-                                                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                                {categories.map((c: any) => (
-                                                                    <CommandItem
-                                                                        key={c._id}
-                                                                        onSelect={() => {
-                                                                            const currentCourses = branch.courses || branch.facilities || [];
-                                                                            const updated = currentCourses.includes(c.name)
-                                                                                ? currentCourses.filter((cat: string) => cat !== c.name)
-                                                                                : [...currentCourses, c.name];
-                                                                            updateBranchField(index, 'courses', updated);
-                                                                        }}
-                                                                    >
-                                                                        <Checkbox
-                                                                            checked={(branch.courses || branch.facilities || []).includes(c.name)}
-                                                                            className="mr-2"
-                                                                        />
-                                                                        {c.name}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <p className="text-[10px] text-muted-foreground italic">Select all courses that are available at this physical branch location.</p>
-                                        </div>
-
-                                        <div className="space-y-2 pt-2 border-t">
-                                            <Label className="text-sm font-semibold">Available Faculties</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className="w-full justify-between h-auto min-h-[44px] px-3 py-2 text-left font-normal border-slate-200"
-                                                    >
-                                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                                            {(branch.faculties && branch.faculties.length > 0) ? (
-                                                                branch.faculties.map((faculty: string) => (
-                                                                    <Badge key={faculty} variant="secondary" className="pl-2 pr-1 py-1 flex items-center gap-1 bg-primary/5 text-primary border-primary/10">
-                                                                        <span className="text-[11px] font-medium">{faculty}</span>
-                                                                        <span
-                                                                            className="ml-1 p-0.5 cursor-pointer hover:bg-primary/20 rounded-full transition-colors flex items-center justify-center"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                e.stopPropagation();
-                                                                                const current = branch.faculties || [];
-                                                                                const next = current.filter((f: string) => f !== faculty);
-                                                                                updateBranchField(index, 'faculties', next);
-                                                                            }}
-                                                                        >
-                                                                            <X className="w-3.5 h-3.5" />
-                                                                        </span>
-                                                                    </Badge>
-                                                                ))
-                                                            ) : (
-                                                                <span className="text-muted-foreground">Select faculties teaching at this branch...</span>
-                                                            )}
-                                                        </div>
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[400px] p-0" align="start">
-                                                    <Command>
-                                                        <CommandInput placeholder="Search faculties..." />
-                                                        <CommandList>
-                                                            <CommandEmpty>No faculties found.</CommandEmpty>
-                                                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                                                {faculties.map((f: any) => (
-                                                                    <CommandItem
-                                                                        key={f._id}
-                                                                        onSelect={() => {
-                                                                            const currentFaculties = branch.faculties || [];
-                                                                            const updated = currentFaculties.includes(f.name)
-                                                                                ? currentFaculties.filter((fac: string) => fac !== f.name)
-                                                                                : [...currentFaculties, f.name];
-                                                                            updateBranchField(index, 'faculties', updated);
-                                                                        }}
-                                                                    >
-                                                                        <Checkbox
-                                                                            checked={(branch.faculties || []).includes(f.name)}
-                                                                            className="mr-2"
-                                                                        />
-                                                                        {f.name}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <p className="text-[10px] text-muted-foreground italic">Select all faculties that teach at this physical branch location.</p>
-                                        </div>
-
-                                        <div className="space-y-2 pt-2 border-t">
-                                            <Label className="text-sm font-semibold">Google Map URL</Label>
-                                            <Input
-                                                value={branch.mapUrl || ""}
-                                                onChange={(e) => updateBranchField(index, 'mapUrl', e.target.value)}
-                                                placeholder="Paste Google Maps URL or Embed Code (<iframe...)"
-                                            />
-                                        </div>
-                                        <div className="pt-4 mt-2 border-t flex justify-end">
-                                            <Button onClick={(e) => { e.stopPropagation(); handleSave(); }} disabled={saving} size="sm">
-                                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                <Save className="mr-2 h-4 w-4" />
-                                                Save Branch
+                            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Category & Sub Category</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className="w-full justify-between h-auto min-h-[44px] px-3 py-2 text-left font-normal border-slate-200"
+                                            >
+                                                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                    {(branchFormData.courses && branchFormData.courses.length > 0) ? (
+                                                        branchFormData.courses.map((course: string) => (
+                                                            <Badge key={course} variant="secondary" className="pl-2 pr-1 py-1 flex items-center gap-1 bg-primary/5 text-primary border-primary/10">
+                                                                <span className="text-[11px] font-medium">{course}</span>
+                                                                <span
+                                                                    className="ml-1 p-0.5 cursor-pointer hover:bg-primary/20 rounded-full transition-colors flex items-center justify-center"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        setBranchFormData({
+                                                                            ...branchFormData,
+                                                                            courses: branchFormData.courses.filter((c: string) => c !== course)
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </span>
+                                                            </Badge>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Select categories...</span>
+                                                    )}
+                                                </div>
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
-                                        </div>
-                                    </CardContent>
-                                )}
-                            </Card>
-                        ))}
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[400px] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder="Search categories..." />
+                                                <CommandList>
+                                                    <CommandEmpty>No categories found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                                        {allCategories.map((cat: any) => (
+                                                            <CommandItem
+                                                                key={cat._id}
+                                                                onSelect={() => {
+                                                                    const current = branchFormData.courses || [];
+                                                                    const name = cat.name;
+                                                                    const next = current.includes(name)
+                                                                        ? current.filter((c: string) => c !== name)
+                                                                        : [...current, name];
+                                                                    setBranchFormData({ ...branchFormData, courses: next });
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        (branchFormData.courses || []).includes(cat.name) ? "opacity-100" : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {cat.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
 
-                        {(!content.branches || content.branches.length === 0) && (
-                            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                                <p className="text-muted-foreground mb-4">No branches found. Add your first branch.</p>
-                                <Button onClick={addBranch} variant="outline">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Available Faculties</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                role="combobox"
+                                                className="w-full justify-between h-auto min-h-[44px] px-3 py-2 text-left font-normal border-slate-200"
+                                            >
+                                                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                                    {(branchFormData.faculties && branchFormData.faculties.length > 0) ? (
+                                                        branchFormData.faculties.map((faculty: string) => (
+                                                            <Badge key={faculty} variant="secondary" className="pl-2 pr-1 py-1 flex items-center gap-1 bg-primary/5 text-primary border-primary/10">
+                                                                <span className="text-[11px] font-medium">{faculty}</span>
+                                                                <span
+                                                                    className="ml-1 p-0.5 cursor-pointer hover:bg-primary/20 rounded-full transition-colors flex items-center justify-center"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        setBranchFormData({
+                                                                            ...branchFormData,
+                                                                            faculties: branchFormData.faculties.filter((f: string) => f !== faculty)
+                                                                        });
+                                                                    }}
+                                                                >
+                                                                    <X className="w-3.5 h-3.5" />
+                                                                </span>
+                                                            </Badge>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Select faculties...</span>
+                                                    )}
+                                                </div>
+                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[400px] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder="Search faculties..." />
+                                                <CommandList>
+                                                    <CommandEmpty>No faculties found.</CommandEmpty>
+                                                    <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                                        {faculties.map((f: any) => (
+                                                            <CommandItem
+                                                                key={f._id}
+                                                                onSelect={() => {
+                                                                    const current = branchFormData.faculties || [];
+                                                                    const updated = current.includes(f.name)
+                                                                        ? current.filter((fac: string) => fac !== f.name)
+                                                                        : [...current, f.name];
+                                                                    setBranchFormData({ ...branchFormData, faculties: updated });
+                                                                }}
+                                                            >
+                                                                <Checkbox
+                                                                    checked={(branchFormData.faculties || []).includes(f.name)}
+                                                                    className="mr-2"
+                                                                />
+                                                                {f.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <Label className="text-sm font-semibold flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-primary" />
+                                    SEO Meta Tags
+                                </Label>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label className="text-xs">Meta Title</Label>
+                                        <Input
+                                            value={branchFormData.metaTitle || ""}
+                                            onChange={(e) => setBranchFormData({ ...branchFormData, metaTitle: e.target.value })}
+                                            placeholder="e.g. CA Coaching in Andheri | JK Shah Classes"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">Meta Description</Label>
+                                        <Textarea
+                                            value={branchFormData.metaDescription || ""}
+                                            onChange={(e) => setBranchFormData({ ...branchFormData, metaDescription: e.target.value })}
+                                            placeholder="Brief description for search results..."
+                                            className="h-20"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs">Meta Keywords</Label>
+                                        <Textarea
+                                            value={branchFormData.metaKeywords || ""}
+                                            onChange={(e) => setBranchFormData({ ...branchFormData, metaKeywords: e.target.value })}
+                                            placeholder="Keyword 1, Keyword 2, ..."
+                                            className="h-20"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-4 mt-2 border-t">
+                                {editingBranchIdx !== null && (
+                                    <Button variant="outline" onClick={() => {
+                                        setEditingBranchIdx(null);
+                                        setBranchFormData({
+                                            name: "", city: "", state: "", pincode: "", address: "", phone: "", email: "", timings: "", students: "", image: "", courses: [], faculties: [], mapUrl: "", metaTitle: "", metaDescription: "", metaKeywords: ""
+                                        });
+                                    }}>
+                                        Cancel
+                                    </Button>
+                                )}
+                                <Button onClick={handleSaveBranch} disabled={isSavingBranch}>
+                                    {isSavingBranch && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {editingBranchIdx !== null ? "Update Branch" : "Save Branch"}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle>Existing Locations</CardTitle>
+                            <div className="flex gap-2">
+                                {content.branches && content.branches.length > 0 && (
+                                    <Button variant="destructive" size="sm" onClick={handleDeleteAllBranches}>
+                                        <Trash2 className="mr-2 h-4 w-4" /> Delete All Branches
+                                    </Button>
+                                )}
+                                <Button variant="outline" size="sm" onClick={() => setIsBulkDialogOpen(true)}>
+                                    <FileUp className="mr-2 h-4 w-4" /> Bulk Upload
+                                </Button>
+                                <Button onClick={addBranch} variant="outline" size="sm">
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add Branch
                                 </Button>
                             </div>
-                        )}
-                    </div>
-                </TabsContent>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Branch Name</TableHead>
+                                            <TableHead>City & State</TableHead>
+                                            <TableHead>Contact</TableHead>
+                                            <TableHead>Modules</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {content.branches && content.branches.length > 0 ? (
+                                            content.branches.map((branch: any, index: number) => (
+                                                <TableRow key={branch.id || index}>
+                                                    <TableCell className="font-medium">
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="h-4 w-4 text-primary" />
+                                                            {branch.name}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>{branch.city}, {branch.state}</TableCell>
+                                                    <TableCell>
+                                                        <div className="text-xs">
+                                                            <div>{branch.phone}</div>
+                                                            <div className="text-muted-foreground">{branch.email}</div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {(branch.courses || branch.facilities || []).slice(0, 2).map((c: string) => (
+                                                                <Badge key={c} variant="outline" className="text-[10px] py-0">{c}</Badge>
+                                                            ))}
+                                                            {(branch.courses || branch.facilities || []).length > 2 && (
+                                                                <Badge variant="outline" className="text-[10px] py-0">+{(branch.courses || branch.facilities || []).length - 2}</Badge>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                                                onClick={() => handleEditBranchLoc(index)}
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            {(() => {
+                                                                const branchBatches = batches.filter(b => b.location === branch.name);
+                                                                const branchEnquiries = enquiries.filter(e => e.branchName === branch.name);
+                                                                const branchPlacements = placements.filter(p => p.location === branch.name);
+                                                                const branchCareers = careerListings.filter(c => c.location === branch.name);
+                                                                const hasDeps = branchBatches.length > 0 || branchEnquiries.length > 0 || branchPlacements.length > 0 || branchCareers.length > 0;
+
+                                                                return (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className={cn("h-8 w-8 p-0", hasDeps ? "text-muted-foreground cursor-not-allowed opacity-50" : "text-destructive hover:text-destructive hover:bg-red-50")}
+                                                                        onClick={() => !hasDeps && removeBranch(index)}
+                                                                        disabled={hasDeps}
+                                                                        title={hasDeps ? "Cannot delete branch with associated items" : "Delete Branch"}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                );
+                                                            })()}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                                    No branches found. Add your first branch.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent >
                 <TabsContent value="batches" className="space-y-6 mt-6">
                     <Card>
                         <CardHeader ref={formRef}>
@@ -1159,19 +1550,72 @@ export function BranchManagement() {
                         </CardContent>
                     </Card>
                 </TabsContent>
-            </Tabs>
+            </Tabs >
 
             <CitySelectorModal
                 isOpen={isCityModalOpen}
                 onClose={() => setIsCityModalOpen(false)}
                 onSelect={(selected) => {
-                    if (activeBranchIndex !== null) {
+                    if (activeBranchIndex === -1) {
+                        setBranchFormData({ ...branchFormData, city: selected.name, state: selected.state });
+                    } else if (activeBranchIndex !== null) {
                         updateBranchField(activeBranchIndex, 'city', selected.name);
                         updateBranchField(activeBranchIndex, 'state', selected.state);
                     }
                 }}
-                currentCity={activeBranchIndex !== null ? content.branches[activeBranchIndex].city : ""}
+                currentCity={activeBranchIndex === -1 ? branchFormData.city : (activeBranchIndex !== null ? content.branches[activeBranchIndex].city : "")}
             />
-        </div>
+            <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Bulk Branch Management</DialogTitle>
+                        <DialogDescription>
+                            Upload a CSV file to add or update branches in bulk.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-6 py-4">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                                <div className="space-y-0.5">
+                                    <h4 className="font-medium">1. Prepare your data</h4>
+                                    <p className="text-sm text-muted-foreground">Download the template or export current data.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="ghost" size="sm" onClick={downloadSampleTemplate}>
+                                        <Download className="h-4 w-4 mr-2" /> Template
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={handleExport}>
+                                        <FileDown className="h-4 w-4 mr-2" /> Export
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>2. Upload CSV File</Label>
+                                <Input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                    className="cursor-pointer"
+                                />
+                                <p className="text-[11px] text-muted-foreground bg-blue-50 p-2 rounded border border-blue-100 italic">
+                                    * Use <b>semicolon (;)</b> to separate multiple values in courses, facilities, and faculties columns.
+                                    <br />* Keep <b>id</b> as 0 for new branches, or use existing IDs to update records.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleBulkUpload} disabled={!selectedFile || isUploading}>
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileUp className="mr-2 h-4 w-4" />}
+                            Upload Branches
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </div >
     );
 }

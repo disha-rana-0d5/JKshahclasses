@@ -69,6 +69,15 @@ export function CareerListingManagement() {
         }
     };
 
+    const toggleStatus = async (item) => {
+        const newStatus = item.status === "Active" ? "Inactive" : "Active";
+        const { ok } = await careerApi.addOrUpdateListing({ ...item, status: newStatus, id: item._id });
+        if (ok) {
+            toast.success(`Listing ${newStatus.toLowerCase()}`);
+            fetchListings();
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -121,9 +130,9 @@ export function CareerListingManagement() {
                                         {item.status}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                    <Button size="sm" variant="ghost" onClick={() => handleEdit(item)}><Edit2 className="w-4 h-4" /></Button>
-                                    <Button size="sm" variant="ghost" className="text-red-500" onClick={() => handleDelete(item._id)}><Trash2 className="w-4 h-4" /></Button>
+                                <td className="px-6 py-4 text-right flex justify-end gap-2 text-sm">
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Edit" onClick={() => handleEdit(item)}><Edit2 className="w-4 h-4" /></Button>
+                                    <Button size="sm" variant="ghost" className="text-red-500 h-8 w-8 p-0" title="Delete" onClick={() => handleDelete(item._id)}><Trash2 className="w-4 h-4" /></Button>
                                 </td>
                             </tr>
                         ))}
@@ -143,24 +152,33 @@ export function CareerListingManagement() {
                                 <Label>Job Title *</Label>
                                 <Input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="e.g. Senior Academic Manager" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Location *</Label>
                                     <Input required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="e.g. Mumbai / Remote" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Job Type</Label>
-                                    <select className="w-full h-10 px-3 bg-gray-50 border rounded-md text-sm" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
-                                        <option>Full-time</option>
-                                        <option>Part-time</option>
-                                        <option>Contract</option>
-                                        <option>Internship</option>
-                                    </select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Job Type</Label>
+                                        <select className="w-full h-10 px-3 bg-gray-50 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                            <option>Full-time</option>
+                                            <option>Part-time</option>
+                                            <option>Contract</option>
+                                            <option>Internship</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Status</Label>
+                                        <select className="w-full h-10 px-3 bg-gray-50 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
+                                            <option value="Active">Active (Visible)</option>
+                                            <option value="Inactive">Inactive (Hidden)</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label>Description *</Label>
-                                <textarea className="w-full min-h-[100px] p-3 text-sm bg-gray-50 border rounded-md" required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                <textarea className="w-full min-h-[120px] p-3 text-sm bg-gray-50 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20" required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Describe the roles and responsibilities..." />
                             </div>
                             <div className="flex gap-4">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>Cancel</Button>

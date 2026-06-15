@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, UserCheck, ShieldCheck, AlertCircle, Scale, RefreshCw, Info, Globe, Lock, Share2, Copyright, Zap, HelpCircle } from "lucide-react";
+import { FileText, UserCheck, ShieldCheck, AlertCircle, Scale, RefreshCw, Info, Globe, Lock, Share2, Copyright, Zap, HelpCircle, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function TermsAndConditionsPage() {
@@ -75,6 +75,46 @@ export function TermsAndConditionsPage() {
             title: "10. Confidentiality & Liability",
             icon: Lock,
             content: "You will not without obtaining prior written consent of JKSC, disclose to third party any Confidential Information. TO THE FULLEST EXTENT PERMITTED BY LAW, JKSC, ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS EXCLUDE ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE JKSC WEBSITE AND YOUR USE THEREOF."
+        },
+        {
+            title: "11. Complaint Policy",
+            icon: MessageSquare,
+            content: (
+                <div className="space-y-5">
+                    <p>We are committed to providing a high quality learning experience. If you face any issues, please follow the steps below.</p>
+
+                    <div>
+                        <p className="font-semibold text-foreground mb-1">Step 1 — Raise a Complaint</p>
+                        <p>Email us at <a href="mailto:karan.gandhi@jkshahclasses.com" className="text-primary hover:underline font-medium">karan.gandhi@jkshahclasses.com</a> with the following details:</p>
+                        <ul className="mt-2 space-y-1 ml-4">
+                            <li className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" /><span>Your full name</span></li>
+                            <li className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" /><span>ACCA ID</span></li>
+                            <li className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" /><span>Batch details</span></li>
+                            <li className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" /><span>Issue description</span></li>
+                            <li className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" /><span>Any supporting evidence</span></li>
+                        </ul>
+                        <p className="mt-2">We aim to respond within <strong>2 working days</strong> and resolve within <strong>7 working days</strong>.</p>
+                    </div>
+
+                    <div>
+                        <p className="font-semibold text-foreground mb-1">Step 2 — Escalation</p>
+                        <p>If your complaint remains unresolved, you may escalate it to the ACCA Vertical Head at <a href="mailto:cakaran@jkshahclasses.com" className="text-primary hover:underline font-medium">cakaran@jkshahclasses.com</a>.</p>
+                    </div>
+
+                    <div>
+                        <p className="font-semibold text-foreground mb-1">Step 3 — Escalation to ACCA</p>
+                        <p>Any student who wishes to make a complaint to ACCA will be advised to follow JKSC's complaint procedure first. If the complaint is not handled to their satisfaction, the student then has the option to escalate their complaint to ACCA. If a student has exhausted both JKSC's complaint process and ACCA's, they can escalate to the appropriate regulator, details of which can be found on the ACCA website at: <a href="https://www.accaglobal.com/gb/en/footer-toolbar/contact-us/unhappy.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium break-all">https://www.accaglobal.com/gb/en/footer-toolbar/contact-us/unhappy.html</a></p>
+                    </div>
+
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <p className="font-semibold text-foreground mb-2">Contact ACCA</p>
+                        <p>ACCA Connect, 110 Queen Street, Glasgow G1 3BX, United Kingdom</p>
+                        <p className="mt-1">T: <a href="tel:+441415822000" className="text-primary hover:underline">+44 (0)141 582 2000</a></p>
+                        <p className="mt-1">E: <a href="https://forms.accaglobal.com/contact-us" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://forms.accaglobal.com/contact-us</a></p>
+                        <p className="mt-1">W: <a href="https://www.accaglobal.com/gb/en/student.html" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.accaglobal.com/gb/en/student.html</a></p>
+                    </div>
+                </div>
+            )
         }
     ];
 
@@ -90,7 +130,7 @@ export function TermsAndConditionsPage() {
                     >
                         <FileText className="w-16 h-16 mx-auto mb-6 opacity-80" />
                         <h1 className="text-4xl md:text-5xl font-bold mb-4">Terms and Conditions</h1>
-                        <p className="text-primary-foreground/80 text-lg">As updated on January 23, 2020</p>
+                        {/* <p className="text-primary-foreground/80 text-lg">As updated on January 23, 2020</p> */}
                     </motion.div>
                 </div>
             </section>

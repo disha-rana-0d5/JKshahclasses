@@ -52,11 +52,14 @@ export const categoryApi = {
         return { ok: response.ok, data: await response.json() };
     },
 
-    async addCategory(name, description, parent, slug, metaTitle, metaDescription, metaKeywords, whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, sequence) {
+    async addCategory(name, description, parent, slug, metaTitle, metaDescription, metaKeywords, whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, whyPoints, whyJKShahPoints, sequence, bannerTitle, bannerSubtitle, bannerBadges, bannerBadgeIcons, bannerStats) {
         const response = await fetch(`${BASE_URL}/categories`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, description, parent, slug, metaTitle, metaDescription, metaKeywords, whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, sequence }),
+            body: JSON.stringify({
+                name, description, parent, slug, metaTitle, metaDescription, metaKeywords, whyTitle, whyContent, whyJKShahTitle, whyJKShahContent, whyPoints, whyJKShahPoints, sequence,
+                bannerTitle, bannerSubtitle, bannerBadges, bannerBadgeIcons, bannerStats
+            }),
         });
         return { ok: response.ok, data: await response.json() };
     },
@@ -115,8 +118,30 @@ export const landingPageApi = {
             body: JSON.stringify(contentData),
         });
         return { ok: response.ok, data: await response.json() };
+    },
+    async exportBranches() {
+        const response = await fetch(`${BASE_URL}/content/branches/export`);
+        if (response.ok) {
+            const blob = await response.blob();
+            return { ok: true, data: blob };
+        }
+        return { ok: false, data: null };
+    },
+    async bulkUploadBranches(formData) {
+        const response = await fetch(`${BASE_URL}/content/branches/bulk`, {
+            method: "POST",
+            body: formData,
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAllBranches() {
+        const response = await fetch(`${BASE_URL}/content/branches`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
     }
 };
+
 
 
 export const courseApi = {
@@ -187,6 +212,27 @@ export const facultyApi = {
             method: "DELETE",
         });
         return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAllFaculties() {
+        const response = await fetch(`${BASE_URL}/faculties`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async exportFaculties() {
+        const response = await fetch(`${BASE_URL}/faculties/export`);
+        if (response.ok) {
+            const blob = await response.blob();
+            return { ok: true, data: blob };
+        }
+        return { ok: false, data: null };
+    },
+    async bulkUploadFaculties(formData) {
+        const response = await fetch(`${BASE_URL}/faculties/bulk`, {
+            method: "POST",
+            body: formData,
+        });
+        return { ok: response.ok, data: await response.json() };
     }
 };
 
@@ -234,6 +280,40 @@ export const orderApi = {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async createOrder(orderData) {
+        const token = localStorage.getItem('token');
+        const headers = { "Content-Type": "application/json" };
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+        const response = await fetch(`${BASE_URL}/orders`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(orderData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async deleteOrder(id) {
+        const response = await fetch(`${BASE_URL}/orders/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async getMyOrders(params = {}) {
+        const token = localStorage.getItem('token');
+        const query = new URLSearchParams();
+        if (params.page) query.append('page', params.page);
+        if (params.limit) query.append('limit', params.limit);
+
+        const response = await fetch(`${BASE_URL}/orders/myorders?${query.toString()}`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
         });
         return { ok: response.ok, data: await response.json() };
     }
@@ -317,6 +397,12 @@ export const rankHolderApi = {
 
     async deleteRankHolder(id) {
         const response = await fetch(`${BASE_URL}/rank-holders/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAllRankHolders() {
+        const response = await fetch(`${BASE_URL}/rank-holders`, {
             method: "DELETE",
         });
         return { ok: response.ok, data: await response.json() };
@@ -418,6 +504,14 @@ export const placementApi = {
         });
         return { ok: response.ok, data: await response.json() };
     },
+    async updatePlacement(id, placementData) {
+        const response = await fetch(`${BASE_URL}/placements/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(placementData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
 
     async getApplications(params = {}) {
         const query = new URLSearchParams(params).toString();
@@ -501,9 +595,74 @@ export const careerApi = {
             return { ok: true };
         }
         return { ok: false };
+    },
+    async deleteApplication(id) {
+        const response = await fetch(`${BASE_URL}/careers/applications/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
     }
 };
 
+export const alumniApi = {
+    async getAlumni(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${BASE_URL}/alumni${query ? `?${query}` : ""}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addAlumni(data) {
+        const response = await fetch(`${BASE_URL}/alumni`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateAlumni(id, data) {
+        const response = await fetch(`${BASE_URL}/alumni/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAlumni(id) {
+        const response = await fetch(`${BASE_URL}/alumni/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+};
+
+export const alumniWorkAtApi = {
+    async getAll(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${BASE_URL}/alumni-work-at${query ? `?${query}` : ''}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async add(data) {
+        const response = await fetch(`${BASE_URL}/alumni-work-at`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async update(id, data) {
+        const response = await fetch(`${BASE_URL}/alumni-work-at/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async remove(id) {
+        const response = await fetch(`${BASE_URL}/alumni-work-at/${id}`, {
+            method: 'DELETE',
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+};
 
 export const blogApi = {
     async getCategories(params = {}) {
@@ -511,6 +670,7 @@ export const blogApi = {
         const response = await fetch(`${BASE_URL}/blogs/categories${query ? `?${query}` : ""}`);
         return { ok: response.ok, data: await response.json() };
     },
+
 
     async addCategory(categoryData) {
         const response = await fetch(`${BASE_URL}/blogs/categories`, {
@@ -637,4 +797,260 @@ export const branchEnquiryApi = {
         return { ok: response.ok, data };
     }
 };
+export const productApi = {
+    // Categories
+    async getCategories() {
+        const response = await fetch(`${BASE_URL}/products/categories`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async getProductFilterOptions(type = 'book') {
+        const response = await fetch(`${BASE_URL}/products/product-filters?type=${type}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addCategory(name, type) {
+        const response = await fetch(`${BASE_URL}/products/categories`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, type }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteCategory(id) {
+        const response = await fetch(`${BASE_URL}/products/categories/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateCategory(id, name, type) {
+        const response = await fetch(`${BASE_URL}/products/categories/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, type }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
 
+    // Subcategories
+    async getSubCategories(categoryId) {
+        const query = categoryId ? `?category=${categoryId}` : "";
+        const response = await fetch(`${BASE_URL}/products/subcategories${query}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addSubCategory(name, categoryId) {
+        const response = await fetch(`${BASE_URL}/products/subcategories`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, category: categoryId }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteSubCategory(id) {
+        const response = await fetch(`${BASE_URL}/products/subcategories/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateSubCategory(id, name, categoryId) {
+        const response = await fetch(`${BASE_URL}/products/subcategories/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, category: categoryId }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    // Attributes
+    async getAttributes(subcategoryId, productId) {
+        const query = new URLSearchParams();
+        if (subcategoryId) query.append('subcategory', subcategoryId);
+        if (productId) query.append('product', productId);
+        const response = await fetch(`${BASE_URL}/products/attributes?${query.toString()}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addAttribute(name, subcategoryId, productId, sequence = 0, isGlobal = false) {
+        const response = await fetch(`${BASE_URL}/products/attributes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, subcategory: subcategoryId, product: productId, sequence, isGlobal }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateAttribute(id, data) {
+        const response = await fetch(`${BASE_URL}/products/attributes/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAttribute(id) {
+        const response = await fetch(`${BASE_URL}/products/attributes/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    // Attribute Values
+    async getAttributeValues(attributeId) {
+        const query = attributeId ? `?attribute=${attributeId}` : "";
+        const response = await fetch(`${BASE_URL}/products/attribute-values${query}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addAttributeValue(value, attributeId, amount = 0, quantity = 0) {
+        const response = await fetch(`${BASE_URL}/products/attribute-values`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value, attribute: attributeId, amount, quantity }),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateAttributeValue(id, data) {
+        const response = await fetch(`${BASE_URL}/products/attribute-values/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteAttributeValue(id) {
+        const response = await fetch(`${BASE_URL}/products/attribute-values/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    // Faculties
+    async getFaculties() {
+        const response = await fetch(`${BASE_URL}/products/faculties`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addFaculty(facultyData) {
+        const response = await fetch(`${BASE_URL}/products/faculties`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(facultyData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateFaculty(id, facultyData) {
+        const response = await fetch(`${BASE_URL}/products/faculties/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(facultyData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteFaculty(id) {
+        const response = await fetch(`${BASE_URL}/products/faculties/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    // Products
+    async getProducts(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${BASE_URL}/products${query ? `?${query}` : ""}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async getProduct(id) {
+        const response = await fetch(`${BASE_URL}/products/${id}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async addProduct(productData) {
+        const response = await fetch(`${BASE_URL}/products`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(productData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateProduct(id, productData) {
+        const response = await fetch(`${BASE_URL}/products/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(productData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteProduct(id) {
+        const response = await fetch(`${BASE_URL}/products/${id}`, {
+            method: "DELETE",
+        });
+        return { ok: response.ok, data: await response.json() };
+    }
+};
+
+export const announcementApi = {
+    async getAnnouncements(activeOnly = false) {
+        const response = await fetch(`${BASE_URL}/announcements${activeOnly ? '?activeOnly=true' : ''}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async getAnnouncement(id) {
+        const response = await fetch(`${BASE_URL}/announcements/${id}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async createAnnouncement(announcementData) {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/announcements`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(announcementData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async updateAnnouncement(id, announcementData) {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/announcements/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(announcementData),
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
+    async deleteAnnouncement(id) {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/announcements/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    }
+};
+
+export const erpCourseApi = {
+    async getMappings(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${BASE_URL}/erp-course-mappings${query ? `?${query}` : ""}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async saveMapping(mappingData) {
+        const response = await fetch(`${BASE_URL}/erp-course-mappings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(mappingData)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async fetchExternalERPCourses() {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/list`, {
+            method: 'POST',
+            headers: { 
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    }
+};

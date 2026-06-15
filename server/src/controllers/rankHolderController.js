@@ -5,12 +5,58 @@ const csv = require('csv-parser');
 
 exports.getAllRankHolders = async (req, res) => {
     try {
+        let { category, subCategory, course, filter } = req.query;
+
+        let filterObj = {};
+        if (filter) {
+            try {
+                filterObj = typeof filter === 'string' ? JSON.parse(filter) : filter;
+            } catch (e) {
+                console.error('Error parsing filter in controller:', e);
+            }
+        }
+
+        const targetCategory = category || filterObj.category;
+        const targetSubCategory = subCategory || filterObj.subCategory;
+        const targetCourse = course || filterObj.course;
+
+        const baseQuery = {};
+        if (targetCourse) baseQuery.course = targetCourse;
+
+        if (targetCategory && targetSubCategory) {
+            baseQuery.$or = [
+                { category: targetCategory, subCategory: targetSubCategory },
+                { category: targetSubCategory },
+                { subCategory: targetSubCategory }
+            ];
+        } else if (targetCategory) {
+            baseQuery.$or = [
+                { category: targetCategory },
+                { subCategory: targetCategory }
+            ];
+        } else if (targetSubCategory) {
+            baseQuery.$or = [
+                { subCategory: targetSubCategory },
+                { category: targetSubCategory }
+            ];
+        }
+
+        if (filterObj.category) delete filterObj.category;
+        if (filterObj.subCategory) delete filterObj.subCategory;
+        if (filterObj.course) delete filterObj.course;
+
+        const modifiedQuery = { ...req.query };
+        if (filter) {
+            modifiedQuery.filter = JSON.stringify(filterObj);
+        }
+
         const options = {
-            searchFields: ['name', 'category', 'course', 'session'],
-            sort: '-createdAt'
+            searchFields: ['name', 'category', 'subCategory', 'course', 'session'],
+            sort: '-createdAt',
+            baseQuery
         };
 
-        const result = await paginate(RankHolder, req.query, options);
+        const result = await paginate(RankHolder, modifiedQuery, options);
         res.status(200).json(result);
     } catch (error) {
         console.error(error);
@@ -20,6 +66,7 @@ exports.getAllRankHolders = async (req, res) => {
         });
     }
 };
+
 
 exports.addRankHolder = async (req, res) => {
     try {
@@ -39,7 +86,9 @@ exports.addRankHolder = async (req, res) => {
 
 exports.updateRankHolder = async (req, res) => {
     try {
-        if (!req.body.image || req.body.image === "") req.body.image = '/uploads/placeholder.png';
+        if (req.body.hasOwnProperty('image') && !req.body.image) {
+            req.body.image = '/uploads/placeholder.png';
+        }
         const rankHolder = await RankHolder.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
@@ -83,6 +132,21 @@ exports.deleteRankHolder = async (req, res) => {
     }
 };
 
+exports.deleteAllRankHolders = async (req, res) => {
+    try {
+        await RankHolder.deleteMany({});
+        res.status(200).json({
+            success: true,
+            message: 'All rank holders deleted successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 // @desc    Export rank holders to CSV
 // @route   GET /api/rank-holders/export
 // @access  Private/Admin
@@ -91,7 +155,7 @@ exports.exportRankHolders = async (req, res) => {
         const rankHolders = await RankHolder.find({}).sort('-createdAt');
 
         // Define fields to export. vital: _id for updates
-        const fields = ['_id', 'name', 'category', 'globalRank', 'indiaRank', 'course', 'session', 'image'];
+        const fields = ['_id', 'name', 'category', 'subCategory', 'globalRank', 'indiaRank', 'course', 'session', 'score', 'image'];
 
         // Manual CSV conversion
         const header = fields.join(',') + '\n';
@@ -151,11 +215,13 @@ exports.bulkUploadRankHolders = async (req, res) => {
                 } else {
                     const record = {
                         name: data.name.trim(),
-                        category: data.category.trim(),
+                        category: data.category ? data.category.trim() : "",
+                        subCategory: data.subcategory ? data.subcategory.trim() : "",
                         globalRank: data.globalrank ? data.globalrank.trim() : "",
                         indiaRank: data.indiarank ? data.indiarank.trim() : "",
                         course: data.course.trim(),
                         session: data.session.trim(),
+                        score: data.score ? String(data.score).trim() : "",
                         image: data.image ? data.image.trim() : "/uploads/placeholder.png"
                     };
 

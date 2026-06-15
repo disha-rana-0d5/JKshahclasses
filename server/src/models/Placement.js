@@ -10,6 +10,10 @@ const placementSchema = new mongoose.Schema({
         required: [true, 'Please add a firm/company name'],
         trim: true
     },
+    designation: {
+        type: String,
+        trim: true
+    },
     location: {
         type: String,
         required: [true, 'Please add a location'],
@@ -59,7 +63,7 @@ const placementSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for automatic expiration if needed, or query-based filtering
-placementSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Index for query-based filtering if needed
+// placementSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // Removed TTL to keep expired items in admin panel
 
 module.exports = mongoose.model('Placement', placementSchema);

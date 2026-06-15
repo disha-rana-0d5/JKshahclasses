@@ -1,0 +1,5 @@
+nohup: ignoring input
+[dotenv@17.2.3] injecting env (11) from .env -- tip: 🔄 add secrets lifecycle management: https://dotenvx.com/ops
+Dashboard routes loaded
+Server running on port 5003
+MongoDB Connected: ac-nwmgdrm-shard-00-00.hvopbxf.mongodb.net

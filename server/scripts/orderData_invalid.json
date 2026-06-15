@@ -1,0 +1,36 @@
+{
+    "items": [
+        {
+            "productId": "invalid-id",
+            "productType": "book",
+            "title": "Test Book",
+            "price": 500,
+            "quantity": 1,
+            "image": "",
+            "variantId": "",
+            "variantName": ""
+        }
+    ],
+    "customerInfo": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "mobile": "9876543210"
+    },
+    "shippingAddress": {
+        "addressLine": "123 Main St",
+        "city": "Mumbai",
+        "state": "MH",
+        "pincode": "400001",
+        "country": "India"
+    },
+    "billingAddress": {
+        "addressLine": "123 Main St",
+        "city": "Mumbai",
+        "state": "MH",
+        "pincode": "400001",
+        "country": "India"
+    },
+    "totalAmount": 500,
+    "paymentMethod": "COD",
+    "paymentId": "COD-123456"
+}

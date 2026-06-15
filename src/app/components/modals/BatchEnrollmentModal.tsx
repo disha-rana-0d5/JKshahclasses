@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Checkbox } from "../ui/checkbox";
 import { toast } from "sonner";
 import { Clock, CheckCircle2 } from "lucide-react";
+import { erpCourseApi } from "../../api/api";
 
 interface BatchEnrollmentModalProps {
     isOpen: boolean;
@@ -33,6 +34,8 @@ export function BatchEnrollmentModal({
     const [selectedLanguage, setSelectedLanguage] = useState<string>("");
     const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+    const [erpCourses, setErpCourses] = useState<any[]>([]);
+    const [selectedErpCourses, setSelectedErpCourses] = useState<string[]>([]);
 
     // Reset state when modal opens or topic changes
     useEffect(() => {
@@ -41,9 +44,42 @@ export function BatchEnrollmentModal({
             setSelectedLocation("");
             setSelectedLanguage("");
             setSelectedBatchId(null);
-
-            // Do not pre-select subjects as per user request
             setSelectedSubjects([]);
+            setSelectedErpCourses([]);
+            
+            // Fetch ERP Courses on modal open based on course
+            const fetchErpCourses = async () => {
+                try {
+                    // Fetch mappings from DB
+                    const mappingsRes = await erpCourseApi.getMappings();
+                    const mappings: Record<string, any> = {};
+                    if (mappingsRes.ok && mappingsRes.data?.data) {
+                        mappingsRes.data.data.forEach((m: any) => {
+                            mappings[m.erpCourseId] = {
+                                category: m.category,
+                                subCategory: m.subCategory,
+                                isVisible: m.isVisible
+                            };
+                        });
+                    }
+
+                    // Fetch external ERP courses
+                    const coursesRes = await erpCourseApi.fetchExternalERPCourses();
+                    
+                    if (coursesRes.ok && coursesRes.data?.data) {
+                        const matchingCourses = coursesRes.data.data.filter((c: any) => {
+                            const mapping = mappings[c.levelId];
+                            if (!mapping) return false;
+                            if (mapping.isVisible !== true) return false;
+                            return mapping.category === course.category && mapping.subCategory === course.subCategory;
+                        });
+                        setErpCourses(matchingCourses);
+                    }
+                } catch (e) {
+                    console.error("Error fetching ERP courses:", e);
+                }
+            };
+            fetchErpCourses();
         }
     }, [isOpen, topic, course]);
 
@@ -126,6 +162,14 @@ export function BatchEnrollmentModal({
             prev.includes(subjectName)
                 ? prev.filter(s => s !== subjectName)
                 : [...prev, subjectName]
+        );
+    };
+
+    const handleErpCourseToggle = (courseId: string) => {
+        setSelectedErpCourses(prev =>
+            prev.includes(courseId)
+                ? prev.filter(id => id !== courseId)
+                : [...prev, courseId]
         );
     };
 
@@ -328,6 +372,35 @@ export function BatchEnrollmentModal({
                                     })}
                                 </div>
                             </div>
+                            
+                            {/* ERP Courses Selection */}
+                            {erpCourses.length > 0 && (
+                                <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
+                                    <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Related ERP Courses</h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[180px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                        {erpCourses.map((erpCourse: any) => {
+                                            const isChecked = selectedErpCourses.includes(erpCourse.levelId?.toString());
+                                            return (
+                                                <div
+                                                    key={erpCourse.levelId}
+                                                    className={`flex items-start gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${isChecked ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:border-slate-200 bg-white'}`}
+                                                    onClick={() => handleErpCourseToggle(erpCourse.levelId?.toString())}
+                                                >
+                                                    <Checkbox
+                                                        checked={isChecked}
+                                                        className="h-4 w-4 border-2 mt-0.5"
+                                                    />
+                                                    <div>
+                                                        <Label className="text-xs font-bold text-slate-700 cursor-pointer line-clamp-2 leading-tight">
+                                                            {erpCourse.course} - {erpCourse.level}
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </Tabs>
                 </div>

@@ -13,42 +13,57 @@ interface VideoManagementDialogProps {
     isOpen: boolean;
     onClose: () => void;
     course: Course | null;
-    onSave: (courseId: string, videos: { title: string; url: string; description?: string }[]) => Promise<void>;
+    onSave: (courseId: string, videos: { title: string; url: string; description?: string; thumbnail?: string }[]) => Promise<void>;
 }
 
 export function VideoManagementDialog({ isOpen, onClose, course, onSave }: VideoManagementDialogProps) {
-    const [video, setVideo] = useState<{ title: string; url: string; description: string }>({ title: "", url: "", description: "" });
+    const [videos, setVideos] = useState<{ title: string; url: string; description: string; thumbnail: string }[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (course && course.videos && course.videos.length > 0) {
-            const existingVideo = course.videos[0];
-            setVideo({
-                title: existingVideo.title || "",
-                url: existingVideo.url || "",
-                description: existingVideo.description || ""
-            });
+            setVideos(course.videos.map(v => ({
+                title: v.title || "",
+                url: v.url || "",
+                description: v.description || "",
+                thumbnail: v.thumbnail || ""
+            })));
         } else {
-            setVideo({ title: "", url: "", description: "" });
+            setVideos([{ title: "", url: "", description: "", thumbnail: "" }]);
         }
     }, [course]);
+
+    const handleAddVideo = () => {
+        if (videos.length >= 3) return;
+        setVideos([...videos, { title: "", url: "", description: "", thumbnail: "" }]);
+    };
+
+    const handleRemoveVideo = (index: number) => {
+        setVideos(videos.filter((_, idx) => idx !== index));
+    };
+
+    const handleVideoChange = (index: number, field: string, value: string) => {
+        const updated = [...videos];
+        updated[index] = { ...updated[index], [field]: value };
+        setVideos(updated);
+    };
 
     const handleSave = async () => {
         if (!course) return;
 
-        // Validation
-        if (video.title.trim() === "" && video.url.trim() === "") {
-            // Allow saving empty to clear the video
-        } else if (video.title.trim() === "" || video.url.trim() === "") {
-            // Basic validation - you might want to show an error toast here
-            return;
+        // Filter out completely empty rows, validate partially filled rows
+        const validVideos = videos.filter(v => v.title.trim() !== "" || v.url.trim() !== "");
+        
+        for (const v of validVideos) {
+            if (v.title.trim() === "" || v.url.trim() === "") {
+                // Return if one is filled but the other is empty
+                return;
+            }
         }
-
-        const videosToSave = (video.title.trim() !== "" && video.url.trim() !== "") ? [video] : [];
 
         setLoading(true);
         try {
-            await onSave(course._id, videosToSave);
+            await onSave(course._id, validVideos);
             onClose();
         } finally {
             setLoading(false);
@@ -57,51 +72,97 @@ export function VideoManagementDialog({ isOpen, onClose, course, onSave }: Video
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                    <DialogTitle>Manage Demo Video</DialogTitle>
-                    <DialogDescription>
-                        Set the demo video for <span className="font-semibold">{course?.title}</span>.
-                    </DialogDescription>
+            <DialogContent className="sm:max-w-[550px] max-h-[85vh] flex flex-col p-6">
+                <DialogHeader className="pb-2 border-b border-border">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <DialogTitle>Manage Demo Videos</DialogTitle>
+                            <DialogDescription className="mt-1">
+                                Set up to 3 demo videos for <span className="font-semibold">{course?.title}</span>.
+                            </DialogDescription>
+                        </div>
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={videos.length >= 3} 
+                            onClick={handleAddVideo}
+                        >
+                            <Plus className="mr-1.5 h-4 w-4" /> Add Video
+                        </Button>
+                    </div>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2">
-                            <Label htmlFor="video-title">Video Title</Label>
-                            <Input
-                                id="video-title"
-                                value={video.title}
-                                onChange={(e) => setVideo({ ...video, title: e.target.value })}
-                                placeholder="e.g. Introduction to Accounting"
-                            />
+                <div className="flex-1 overflow-y-auto py-4 space-y-6 pr-1">
+                    {videos.map((video, idx) => (
+                        <div key={idx} className="bg-muted/30 p-4 rounded-xl border border-border space-y-4 relative group">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-primary uppercase tracking-wider bg-[#373081]/10 text-[#373081] px-2 py-0.5 rounded-md">
+                                    Video {idx + 1}
+                                </span>
+                                <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                                    onClick={() => handleRemoveVideo(idx)}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor={`video-title-${idx}`} className="text-xs font-semibold">Video Title</Label>
+                                    <Input
+                                        id={`video-title-${idx}`}
+                                        className="bg-white text-sm"
+                                        value={video.title}
+                                        onChange={(e) => handleVideoChange(idx, "title", e.target.value)}
+                                        placeholder="e.g. Introduction to Course"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor={`video-url-${idx}`} className="text-xs font-semibold">Video URL (YouTube/Vimeo)</Label>
+                                    <Input
+                                        id={`video-url-${idx}`}
+                                        className="bg-white text-sm"
+                                        value={video.url}
+                                        onChange={(e) => handleVideoChange(idx, "url", e.target.value)}
+                                        placeholder="https://www.youtube.com/watch?v=..."
+                                    />
+                                </div>
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <Label htmlFor={`video-thumbnail-${idx}`} className="text-xs font-semibold">Thumbnail Image URL</Label>
+                                    <Input
+                                        id={`video-thumbnail-${idx}`}
+                                        className="bg-white text-sm"
+                                        value={video.thumbnail}
+                                        onChange={(e) => handleVideoChange(idx, "thumbnail", e.target.value)}
+                                        placeholder="https://example.com/thumbnail.jpg"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor={`video-description-${idx}`} className="text-xs font-semibold">Video Description</Label>
+                                <Textarea
+                                    id={`video-description-${idx}`}
+                                    className="bg-white text-sm min-h-[60px]"
+                                    value={video.description}
+                                    onChange={(e) => handleVideoChange(idx, "description", e.target.value)}
+                                    placeholder="Describe what students will learn in this video..."
+                                />
+                            </div>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                            <Label htmlFor="video-description">Video Description</Label>
-                            <Textarea
-                                id="video-description"
-                                value={video.description}
-                                onChange={(e) => setVideo({ ...video, description: e.target.value })}
-                                placeholder="Describe what students will learn in this video..."
-                                className="min-h-[100px]"
-                            />
+                    ))}
+                    {videos.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-border rounded-xl bg-muted/10">
+                            <Video className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">No videos added yet. Click Add Video to get started.</p>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                            <Label htmlFor="video-url">Video URL (YouTube or Direct Link)</Label>
-                            <Input
-                                id="video-url"
-                                value={video.url}
-                                onChange={(e) => setVideo({ ...video, url: e.target.value })}
-                                placeholder="https://www.youtube.com/watch?v=..."
-                            />
-                            <p className="text-[10px] text-muted-foreground">
-                                Supports YouTube (Watch/Shorts/Embed) URLs.
-                            </p>
-                        </div>
-                    </div>
+                    )}
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="pt-3 border-t border-border mt-auto">
                     <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
                     <Button onClick={handleSave} disabled={loading}>
                         {loading ? "Saving..." : "Save Changes"}

@@ -58,7 +58,7 @@ export function PrivacyPolicyPage() {
                     >
                         <Shield className="w-16 h-16 mx-auto mb-6 opacity-80" />
                         <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
-                        <p className="text-primary-foreground/80 text-lg">Last updated: January 28, 2026</p>
+                        {/* <p className="text-primary-foreground/80 text-lg">Last updated: January 28, 2026</p> */}
                     </motion.div>
                 </div>
             </section>

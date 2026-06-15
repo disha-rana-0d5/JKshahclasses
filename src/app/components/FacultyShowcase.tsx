@@ -138,6 +138,34 @@ export function FacultyShowcase() {
     return gridFacultyMembers.slice(start, start + itemsPerPage);
   }, [gridFacultyMembers, currentPage, itemsPerPage]);
 
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      if (currentPage <= 3) {
+        for (let i = 2; i <= 4; i++) pages.push(i);
+        pages.push('...');
+      } else if (currentPage >= totalPages - 2) {
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages - 1; i++) pages.push(i);
+      } else {
+        for (let i = start; i <= end; i++) pages.push(i);
+        pages.push('...');
+      }
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   useEffect(() => {
     const loadAllData = async () => {
       setIsLoading(true);
@@ -181,7 +209,7 @@ export function FacultyShowcase() {
 
   const fetchFaculties = async () => {
     try {
-      const { ok, data } = await facultyApi.getFaculties();
+      const { ok, data } = await facultyApi.getFaculties({ limit: 1000 });
       if (ok && data.success) {
         setFacultyMembers(data.data);
       }
@@ -387,15 +415,21 @@ export function FacultyShowcase() {
                   </Button>
 
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <Button
-                        key={i}
-                        variant={currentPage === i + 1 ? "default" : "outline"}
-                        className={`w-10 h-10 rounded-full ${currentPage === i + 1 ? "bg-red-600 text-white hover:bg-red-700" : ""}`}
-                        onClick={() => setCurrentPage(i + 1)}
-                      >
-                        {i + 1}
-                      </Button>
+                    {getPageNumbers().map((page, i) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${i}`} className="w-10 h-10 flex items-center justify-center text-gray-400">
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={i}
+                          variant={currentPage === page ? "default" : "outline"}
+                          className={`w-10 h-10 rounded-full ${currentPage === page ? "bg-red-600 text-white hover:bg-red-700" : ""}`}
+                          onClick={() => setCurrentPage(page as number)}
+                        >
+                          {page}
+                        </Button>
+                      )
                     ))}
                   </div>
 
@@ -432,7 +466,7 @@ export function FacultyShowcase() {
                           className="group relative bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col"
                         >
                           {/* Image Section */}
-                          <div className="relative h-48 overflow-hidden">
+                          <div className="relative h-72 overflow-hidden">
                             <ImageWithFallback
                               src={faculty.image}
                               alt={faculty.name}
@@ -508,8 +542,8 @@ export function FacultyShowcase() {
         </div>
 
         {/* Stats Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-red-500 to-amber-500 p-6 sm:p-12 mb-20">
-          {/* Pattern Overlay */}
+        {/* <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-red-600 via-red-500 to-amber-500 p-6 sm:p-12 mb-20">
+          
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMSIgb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30"></div>
 
           <div className="relative grid md:grid-cols-4 gap-8 text-center text-white">
@@ -529,10 +563,10 @@ export function FacultyShowcase() {
               );
             })}
           </div>
-        </div>
+        </div> */}
 
         {/* CTA Section */}
-        <div className="text-center bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-3xl p-6 sm:p-12">
+        {/* <div className="text-center bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-3xl p-6 sm:p-12">
           <Crown className="w-16 h-16 text-amber-500 mx-auto mb-6" />
           <h2 className="text-4xl font-black text-gray-900 mb-4">
             {facultyPage.cta.title}
@@ -554,7 +588,6 @@ export function FacultyShowcase() {
             </Button>
           </div>
 
-          {/* Trust Indicators */}
           <div className="flex flex-wrap justify-center gap-6 mt-8 pt-8 border-t border-gray-200">
             {facultyPage.trustIndicators.map((item: any, idx: number) => {
               const Icon = iconMap[item.iconName] || CheckCircle2;
@@ -566,7 +599,7 @@ export function FacultyShowcase() {
               );
             })}
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Modals */}

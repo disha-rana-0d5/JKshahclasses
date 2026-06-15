@@ -9,9 +9,19 @@ const paginate = async (model, query, options = {}) => {
 
     // Search logic (regex search on multiple fields if specified in options)
     if (query.search && options.searchFields) {
-        queryObj.$or = options.searchFields.map(field => ({
+        const searchOr = options.searchFields.map(field => ({
             [field]: { $regex: query.search, $options: 'i' }
         }));
+        // If baseQuery uses $and, append to it
+        if (queryObj.$and) {
+            queryObj.$and.push({ $or: searchOr });
+        } else if (queryObj.$or) {
+            // If baseQuery uses $or, wrap both in $and
+            queryObj.$and = [{ $or: queryObj.$or }, { $or: searchOr }];
+            delete queryObj.$or;
+        } else {
+            queryObj.$or = searchOr;
+        }
     }
 
     // Exact match filters

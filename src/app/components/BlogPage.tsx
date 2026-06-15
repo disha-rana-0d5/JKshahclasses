@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { blogApi } from "../api/api";
-import { Loader2, Calendar, User, ChevronRight, Search } from "lucide-react";
+import { Loader2, Calendar, User, ChevronRight, Search, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
@@ -124,35 +125,49 @@ export function BlogPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            {/* Header Section */}
-            <div className="bg-primary pt-24 pb-12 px-4 shadow-lg">
+        <div className="min-h-screen bg-white pb-20 font-sans">
+            {/* Minimalist Header Section */}
+            <div className="bg-white pt-28 pb-16 px-4 border-b border-gray-100">
                 <div className="max-w-7xl mx-auto text-center">
-                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Our Blog</h1>
-                    <p className="text-white/80 text-sm md:text-base max-w-2xl mx-auto mb-8">
-                        Our latest news and thought leadership pieces.
-                    </p>
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >
+                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 font-serif italic">
+                            The JK Shah Journal
+                        </h1>
+                        <p className="text-gray-500 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-medium">
+                            Expert insights, exam strategies, and the latest from the world of professional education.
+                        </p>
+                    </motion.div>
 
-                    {/* Header Global Search */}
-                    <div className="max-w-md mx-auto relative group">
+                    {/* Minimalist Search */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="max-w-xl mx-auto relative"
+                    >
                         <form onSubmit={handleHeaderSearchSubmit}>
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                            <div className="relative group">
+                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                                 <Input
-                                    placeholder="Search articles globally..."
-                                    className="pl-12 pr-4 py-6 bg-white border-0 rounded-full shadow-xl focus-visible:ring-2 focus-visible:ring-white/20 text-gray-900"
+                                    placeholder="Search stories, ideas, and expertise..."
+                                    className="pl-8 pr-4 py-6 bg-transparent border-0 border-b border-gray-200 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-primary text-gray-900 text-lg placeholder:text-gray-400 decoration-none"
                                     value={headerSearchInput}
                                     onChange={(e) => setHeaderSearchInput(e.target.value)}
                                 />
                                 <Button
                                     type="submit"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full px-6 h-9 bg-primary hover:bg-primary-dark"
+                                    variant="ghost"
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 text-primary font-bold hover:bg-transparent"
                                 >
                                     Search
                                 </Button>
                             </div>
                         </form>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
@@ -163,51 +178,90 @@ export function BlogPage() {
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-20 space-y-4">
                                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                                <p className="text-gray-500 font-medium">Updating results...</p>
+                                <p className="text-gray-500 font-medium">Fetching the latest stories...</p>
                             </div>
                         ) : blogs.length > 0 ? (
-                            <div className="space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    {blogs.map((blog) => (
+                            <div className="space-y-12">
+                                {/* Featured Post - Only on First Page with No Search/Category */}
+                                {currentPage === 1 && !searchQuery && !selectedCategory && blogs[0] && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.8 }}
+                                        className="mb-16"
+                                    >
                                         <Link
-                                            key={blog._id}
-                                            to={`/blog/${blog.slug}`}
-                                            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
+                                            to={`/blog/${blogs[0].slug}`}
+                                            className="group grid lg:grid-cols-2 gap-8 items-center"
                                         >
-                                            <div className="relative h-64 overflow-hidden">
+                                            <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100">
                                                 <img
-                                                    src={blog.image}
-                                                    alt={blog.title}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    src={blogs[0].image}
+                                                    alt={blogs[0].title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                                 />
-                                                <div className="absolute top-4 left-4 bg-primary/90 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                                    {blog.category?.name || "Uncategorized"}
-                                                </div>
                                             </div>
-                                            <div className="p-6 flex flex-col flex-1">
-                                                <div className="flex items-center gap-4 text-[10px] text-muted-foreground mb-4 uppercase tracking-widest font-bold">
-                                                    <span className="flex items-center gap-1.5">
-                                                        <Calendar className="h-3 w-3" />
-                                                        {new Date(blog.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                    <span className="h-1 w-1 bg-gray-300 rounded-full" />
-                                                    <span className="flex items-center gap-1.5">
-                                                        <User className="h-3 w-3" />
-                                                        {blog.author || "Admin"}
-                                                    </span>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-primary">
+                                                    <span>{blogs[0].category?.name || "Featured"}</span>
                                                 </div>
-                                                <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                                                    {blog.title}
-                                                </h3>
+                                                <h2 className="text-3xl md:text-4xl font-bold font-serif text-gray-900 leading-tight group-hover:underline decoration-primary/30 underline-offset-4">
+                                                    {blogs[0].title}
+                                                </h2>
                                                 <div
-                                                    className="text-gray-500 text-sm mb-6 line-clamp-3 overflow-hidden leading-relaxed"
-                                                    dangerouslySetInnerHTML={{ __html: blog.description }}
+                                                    className="text-gray-600 text-lg line-clamp-3 leading-relaxed"
+                                                    dangerouslySetInnerHTML={{ __html: blogs[0].description }}
                                                 />
-                                                <div className="mt-auto flex items-center text-primary font-bold text-xs uppercase tracking-widest group-hover:gap-2 transition-all">
-                                                    Read Full Article <ChevronRight className="h-4 w-4" />
+                                                <div className="pt-2">
+                                                    <p className="text-sm font-serif italic text-gray-500">
+                                                        {new Date(blogs[0].createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </Link>
+                                    </motion.div>
+                                )}
+
+                                {/* Blog Feed */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                    {blogs.slice(currentPage === 1 && !searchQuery && !selectedCategory ? 1 : 0).map((blog, idx) => (
+                                        <motion.div
+                                            key={blog._id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ delay: idx * 0.1, duration: 0.5 }}
+                                        >
+                                            <Link
+                                                to={`/blog/${blog.slug}`}
+                                                className="group flex flex-col h-full bg-white rounded-xl overflow-hidden"
+                                            >
+                                                <div className="relative aspect-[16/9] overflow-hidden rounded-xl mb-6">
+                                                    <img
+                                                        src={blog.image}
+                                                        alt={blog.title}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-primary">
+                                                        <span>{blog.category?.name || "Article"}</span>
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-gray-900 line-clamp-2 leading-tight font-serif group-hover:text-primary transition-colors">
+                                                        {blog.title}
+                                                    </h3>
+                                                    <div
+                                                        className="text-gray-500 text-sm line-clamp-2 leading-relaxed"
+                                                        dangerouslySetInnerHTML={{ __html: blog.description }}
+                                                    />
+                                                    <div className="pt-2">
+                                                        <span className="text-xs font-serif italic text-gray-400">
+                                                            {new Date(blog.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        </motion.div>
                                     ))}
                                 </div>
 
