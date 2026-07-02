@@ -23,6 +23,7 @@ import { BranchEnquiryForm } from "./forms/BranchEnquiryForm";
 import { toast } from "sonner";
 import { Star, Download, ArrowRight } from "lucide-react";
 import { generateSlug } from "../admin/utils/slugify";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 
 interface Branch {
     id: number;
@@ -63,6 +64,9 @@ export function BranchDetailPage() {
     const [isBatchesLoading, setIsBatchesLoading] = useState(false);
     const [branchCourses, setBranchCourses] = useState<any[]>([]);
     const [isCoursesLoading, setIsCoursesLoading] = useState(false);
+
+    const [enquireOpen, setEnquireOpen] = useState(false);
+    const [pendingBrochure, setPendingBrochure] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchBranch = async () => {
@@ -496,7 +500,8 @@ export function BranchDetailPage() {
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     if (course.brochureUrl) {
-                                                                        window.open(course.brochureUrl, '_blank');
+                                                                        setPendingBrochure(course.brochureUrl);
+                                                                        setEnquireOpen(true);
                                                                     } else {
                                                                         toast.info("Brochure coming soon");
                                                                     }
@@ -580,6 +585,17 @@ export function BranchDetailPage() {
                     </div>
                 </div>
             </section>
+
+            <MerittoFormModal 
+                isOpen={enquireOpen} 
+                onClose={() => {
+                    setEnquireOpen(false);
+                    if (pendingBrochure) {
+                        window.open(pendingBrochure, '_blank');
+                        setPendingBrochure(null);
+                    }
+                }} 
+            />
         </div>
     );
 }

@@ -9,11 +9,12 @@ import { useCourseContext } from "../admin/context/CourseContext";
 import { landingPageApi, batchApi } from "../api/api";
 import { generateSlug } from "../admin/utils/slugify";
 import { toast } from "sonner";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 
 export function CoursesPage() {
   const navigate = useNavigate();
   const { categoryId } = useParams<{ categoryId: string }>();
-  const { allCourses, categories, levels } = useCourseContext();
+  const { allCourses, allCategories: categories, allLevels: levels } = useCourseContext();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
 
@@ -29,8 +30,10 @@ export function CoursesPage() {
   const [batches, setBatches] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
 
+  const [enquireOpen, setEnquireOpen] = useState(false);
+  const [pendingBrochure, setPendingBrochure] = useState<string | null>(null);
+
   useEffect(() => {
-    document.title = "Courses | JK Shah Classes";
     const loadData = async () => {
       try {
         const [batchRes, contentRes] = await Promise.all([
@@ -49,6 +52,40 @@ export function CoursesPage() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (categoryId && categories.length > 0) {
+      let currentCat = categories.find(c => c._id === categoryId);
+      if (!currentCat) {
+        const decodedName = decodeURIComponent(categoryId);
+        currentCat = categories.find(c => c.name.toLowerCase() === decodedName.toLowerCase());
+      }
+      
+      if (currentCat) {
+        document.title = currentCat.metaTitle || `${currentCat.name} Courses | JK Shah Classes`;
+        
+        let metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) {
+          metaDescription = document.createElement('meta');
+          metaDescription.setAttribute('name', 'description');
+          document.head.appendChild(metaDescription);
+        }
+        metaDescription.setAttribute("content", currentCat.metaDescription || "");
+
+        let ogTitle = document.querySelector('meta[property="og:title"]');
+        if (!ogTitle) {
+          ogTitle = document.createElement('meta');
+          ogTitle.setAttribute('property', 'og:title');
+          document.head.appendChild(ogTitle);
+        }
+        ogTitle.setAttribute("content", currentCat.metaTitle || `${currentCat.name} Courses | JK Shah Classes`);
+        
+        return;
+      }
+    }
+    
+    document.title = "Courses | JK Shah Classes";
+  }, [categoryId, categories]);
 
   // Redirect if category has no sub-categories
   useEffect(() => {
@@ -420,7 +457,8 @@ export function CoursesPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (course.brochureUrl) {
-                            window.open(course.brochureUrl, '_blank');
+                            setPendingBrochure(course.brochureUrl);
+                            setEnquireOpen(true);
                           } else {
                             toast.info("Brochure coming soon");
                           }
@@ -502,16 +540,28 @@ export function CoursesPage() {
         </div>
       </div>
 
-      {/* Enroll Modal */}
-      <BatchEnrollmentModal
-        isOpen={showEnrollModal}
+      {showEnrollModal && selectedCourse && (
+        <BatchEnrollmentModal
+          isOpen={showEnrollModal}
+          onClose={() => {
+            setShowEnrollModal(false);
+            setSelectedCourse(null);
+          }}
+          course={selectedCourse}
+          batches={batches}
+          branches={branches}
+        />
+      )}
+
+      <MerittoFormModal 
+        isOpen={enquireOpen} 
         onClose={() => {
-          setShowEnrollModal(false);
-          setSelectedCourse(null);
-        }}
-        course={selectedCourse}
-        batches={batches}
-        branches={branches}
+          setEnquireOpen(false);
+          if (pendingBrochure) {
+            window.open(pendingBrochure, '_blank');
+            setPendingBrochure(null);
+          }
+        }} 
       />
     </div>
   );

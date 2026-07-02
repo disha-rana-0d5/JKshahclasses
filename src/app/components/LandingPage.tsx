@@ -6,6 +6,7 @@ import { BookOpen, GraduationCap, TrendingUp, Users, Award, Star, Play, ArrowRig
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { BranchEnquiryModal } from "./modals/BranchEnquiryModal";
 import { BatchEnrollmentModal } from "./modals/BatchEnrollmentModal";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 import { VideoModal } from "./modals/VideoModal";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "./ui/carousel";
 import {
@@ -29,6 +30,8 @@ export function LandingPage() {
     const [showDemoModal, setShowDemoModal] = useState(false);
     const [showEnrollModal, setShowEnrollModal] = useState(false);
     const [showVideoModal, setShowVideoModal] = useState(false);
+    const [enquireOpen, setEnquireOpen] = useState(false);
+    const [pendingBrochure, setPendingBrochure] = useState<string | null>(null);
     const [selectedCourse, setSelectedCourse] = useState<any>(null);
     const [activeFilter, setActiveFilter] = useState("All");
     const [content, setContent] = useState<any>(null);
@@ -367,7 +370,8 @@ export function LandingPage() {
                                                                 const url = content.hero.brochureUrl.startsWith('http')
                                                                     ? content.hero.brochureUrl
                                                                     : `${window.location.origin}${content.hero.brochureUrl}`;
-                                                                window.open(url, "_blank");
+                                                                setPendingBrochure(url);
+                                                                setEnquireOpen(true);
                                                             }}
                                                         >
                                                             View Brochure
@@ -604,7 +608,8 @@ export function LandingPage() {
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     if (course.brochureUrl) {
-                                                                        window.open(course.brochureUrl, '_blank');
+                                                                        setPendingBrochure(course.brochureUrl);
+                                                                        setEnquireOpen(true);
                                                                     } else {
                                                                         toast.info("Brochure coming soon");
                                                                     }
@@ -1235,7 +1240,8 @@ export function LandingPage() {
                                         className="bg-transparent border-2 border-white text-white hover:bg-white/10 w-full h-14 text-base font-bold"
                                         onClick={() => {
                                             if (content.footerCta.brochureUrl) {
-                                                window.open(content.footerCta.brochureUrl, '_blank');
+                                                setPendingBrochure(content.footerCta.brochureUrl);
+                                                setEnquireOpen(true);
                                             } else {
                                                 toast.info("Brochure coming soon!");
                                             }
@@ -1251,6 +1257,17 @@ export function LandingPage() {
             </main >
 
             {/* Modals */}
+            <MerittoFormModal 
+                isOpen={enquireOpen} 
+                onClose={() => {
+                    setEnquireOpen(false);
+                    if (pendingBrochure) {
+                        window.open(pendingBrochure, '_blank');
+                        setPendingBrochure(null);
+                    }
+                }} 
+            />
+
             <BranchEnquiryModal
                 isOpen={showDemoModal}
                 onClose={() => setShowDemoModal(false)}

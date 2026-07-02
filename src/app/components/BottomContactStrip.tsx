@@ -1,13 +1,7 @@
 import { Phone, Mail, Instagram, Youtube, MessageSquarePlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { landingPageApi } from "../api/api";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "./ui/dialog";
-import { EnquireNowForm } from "./forms/EnquireNowForm";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 
 export function BottomContactStrip() {
     const [content, setContent] = useState<any>(null);
@@ -87,21 +81,10 @@ export function BottomContactStrip() {
             </div>
 
             {/* Enquire Now Modal */}
-            <Dialog open={enquireOpen} onOpenChange={setEnquireOpen}>
-                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-primary">Enquire Now</DialogTitle>
-                        <p className="text-sm text-muted-foreground">
-                            Fill in your details and we'll get back to you shortly.
-                        </p>
-                    </DialogHeader>
-                    <EnquireNowForm
-                        branches={branches}
-                        onSuccess={() => setEnquireOpen(false)}
-                        className="mt-2"
-                    />
-                </DialogContent>
-            </Dialog>
+            <MerittoFormModal 
+                isOpen={enquireOpen} 
+                onClose={() => setEnquireOpen(false)} 
+            />
         </>
     );
 }

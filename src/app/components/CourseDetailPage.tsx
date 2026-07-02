@@ -46,6 +46,7 @@ import {
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { BatchEnrollmentModal } from "./modals/BatchEnrollmentModal";
 import { VideoModal } from "./modals/VideoModal";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 import { landingPageApi, batchApi, alumniWorkAtApi } from "../api/api";
 import { useCourseContext } from "../admin/context/CourseContext";
 import { toast } from "sonner";
@@ -240,14 +241,22 @@ export function CourseDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPathPrefix = location.pathname.split('/').slice(0, -1).join('/') + '/';
-  const { courses, categories, courseTimelines, careerConfigs } = useCourseContext();
+  const { allCourses: courses, allCategories: categories, courseTimelines, careerConfigs } = useCourseContext();
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeAdvantage, setActiveAdvantage] = useState(0);
   const [expandedModule, setExpandedModule] = useState<number | null>(0);
   const [expandedTopic, setExpandedTopic] = useState<number>(0);
   const [selectedTab, setSelectedTab] = useState<"overview" | "syllabus" | "faculty" | "reviews">("overview");
+  const [showMerittoModal, setShowMerittoModal] = useState(true);
+  const [enquireOpen, setEnquireOpen] = useState(false);
+  const [pendingBrochure, setPendingBrochure] = useState<string | null>(null);
   const [testimonialApi, setTestimonialApi] = useState<CarouselApi>();
+
+  // Show Meritto form when navigating to a new course
+  useEffect(() => {
+    setShowMerittoModal(true);
+  }, [slug]);
 
   // Auto-rotate testimonials
   useEffect(() => {
@@ -313,7 +322,7 @@ export function CourseDetailPage() {
 
     if (!isStudent) {
       toast.error("Please login to enroll in courses");
-      navigate("/login", { state: { from: location } });
+      window.location.href = "https://new-online.jkshahclasses.com/";
       return false;
     }
     return true;
@@ -517,6 +526,24 @@ export function CourseDetailPage() {
     const keywordsContent = course.metaKeywords || subCat?.metaKeywords || "CA, CS, CMA, Coaching, JK Shah Classes";
     metaKeywords.setAttribute('content', keywordsContent);
 
+    // 4. Update OG Title
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (!ogTitle) {
+      ogTitle = document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.setAttribute('content', `${pageTitle} | JK Shah Classes`);
+
+    // 5. Update OG Description
+    let ogDescription = document.querySelector('meta[property="og:description"]');
+    if (!ogDescription) {
+      ogDescription = document.createElement('meta');
+      ogDescription.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDescription);
+    }
+    ogDescription.setAttribute('content', descriptionContent);
+
     // Cleanup function
     return () => {
       document.title = "JK Shah Classes - India's Leading CA Coaching";
@@ -713,7 +740,8 @@ export function CourseDetailPage() {
                     className="flex-1 sm:flex-none border-border text-foreground hover:bg-muted hover:!text-foreground h-11 px-6"
                     onClick={() => {
                       if (course.brochureUrl) {
-                        window.open(course.brochureUrl, '_blank');
+                        setPendingBrochure(course.brochureUrl);
+                        setEnquireOpen(true);
                       } else {
                         toast.info("Brochure coming soon");
                       }
@@ -829,15 +857,17 @@ export function CourseDetailPage() {
                   </div>
 
                   {/* Batch Info */}
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-foreground mb-0.5">Next Batch Starts</p>
-                        <p className="text-base text-primary">June 2026</p>
+                  {course.batchInfo && (
+                    <div className="mt-6 pt-6 border-t border-border">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-foreground mb-0.5">Next Batch Starts</p>
+                          <p className="text-base text-primary">{course.batchInfo}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div >
@@ -1821,7 +1851,8 @@ export function CourseDetailPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (relatedCourse.brochureUrl) {
-                          window.open(relatedCourse.brochureUrl, '_blank');
+                          setPendingBrochure(relatedCourse.brochureUrl);
+                          setEnquireOpen(true);
                         } else {
                           toast.info("Brochure coming soon");
                         }
@@ -1880,6 +1911,18 @@ export function CourseDetailPage() {
         videoUrl={selectedVideo ? selectedVideo.url : (course.demoVideos?.[0]?.url || course.videos?.[0]?.url)}
         description={selectedVideo ? selectedVideo.description : (course.demoVideos?.[0]?.description || course.videos?.[0]?.description)}
       />
-    </div >
+
+      <MerittoFormModal 
+        isOpen={enquireOpen || showMerittoModal} 
+        onClose={() => {
+          setEnquireOpen(false);
+          setShowMerittoModal(false);
+          if (pendingBrochure) {
+            window.open(pendingBrochure, '_blank');
+            setPendingBrochure(null);
+          }
+        }} 
+      />
+    </div>
   );
 }
