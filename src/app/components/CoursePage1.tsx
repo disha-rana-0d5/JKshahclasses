@@ -7,11 +7,12 @@ import { BatchEnrollmentModal } from "./modals/BatchEnrollmentModal";
 import { useCourseContext } from "../admin/context/CourseContext";
 import { landingPageApi, batchApi, erpCourseApi } from "../api/api";
 import { generateSlug } from "../admin/utils/slugify";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 
 export function CoursePage1() {
     const navigate = useNavigate();
     const { categoryId } = useParams<{ categoryId: string }>();
-    const { allCourses, categories, levels } = useCourseContext();
+    const { allCourses, allCategories: categories, levels } = useCourseContext();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 9;
 
@@ -25,17 +26,19 @@ export function CoursePage1() {
     const [searchQuery, setSearchQuery] = useState("");
     const [batches, setBatches] = useState<any[]>([]);
     const [branches, setBranches] = useState<any[]>([]);
+    const [showMerittoModal, setShowMerittoModal] = useState(false);
 
     const [apiCourses, setApiCourses] = useState<any[]>([]);
 
     useEffect(() => {
-        document.title = "Courses | JK Shah Classes";
+        document.title = "Courses";
         const loadData = async () => {
             try {
-                const [batchRes, contentRes, courseRes] = await Promise.all([
+                const [batchRes, contentRes, courseRes, mappingRes] = await Promise.all([
                     batchApi.getBatches(),
                     landingPageApi.getLandingContent(),
-                    erpCourseApi.fetchExternalERPCourses()
+                    erpCourseApi.fetchExternalERPCourses(),
+                    erpCourseApi.getMappings()
                 ]);
                 if (batchRes.ok && batchRes.data.success) {
                     setBatches(batchRes.data.data);
@@ -45,7 +48,19 @@ export function CoursePage1() {
                 }
 
                 if (courseRes.ok && courseRes.data?.success) {
-                    setApiCourses(courseRes.data.data);
+                    let visibleCourses = courseRes.data.data;
+                    if (mappingRes.ok && mappingRes.data?.data) {
+                        const mappingDict: Record<string, any> = {};
+                        mappingRes.data.data.forEach((m: any) => {
+                            mappingDict[m.erpCourseId] = m;
+                        });
+                        
+                        visibleCourses = courseRes.data.data.filter((c: any) => {
+                            const m = mappingDict[c.levelId];
+                            return m && m.isVisible === true;
+                        });
+                    }
+                    setApiCourses(visibleCourses);
                 }
             } catch (error) {
                 console.error("Failed to load enrollment data", error);
@@ -58,14 +73,14 @@ export function CoursePage1() {
     useEffect(() => {
         if (categoryId && categories.length > 0 && allCourses.length > 0) {
             const currentCat = categories.find(c => c._id === categoryId) ||
-                categories.find(c => c.name.toLowerCase() === decodeURIComponent(categoryId).toLowerCase());
+                categories.find(c => c.name?.toLowerCase() === decodeURIComponent(categoryId).toLowerCase());
 
             if (currentCat) {
                 const hasSubCategories = categories.some(c => c.parent === currentCat._id);
                 if (!hasSubCategories) {
                     const course = allCourses.find(c => c.category === currentCat.name && c.status === "Active");
                     if (course) {
-                        navigate(`/course/${generateSlug(course.title)}`, { replace: true });
+                        navigate(`/course/${course.slug || generateSlug(course.title)}`, { replace: true });
                     }
                 }
             }
@@ -84,8 +99,8 @@ export function CoursePage1() {
         // Level filter
         if (selectedLevel !== "all" && course.level !== selectedLevel) return false;
 
-        if (searchQuery && !course.course.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !course.level.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        if (searchQuery && !course.course?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            !course.level?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
 
         return true;
     });
@@ -97,6 +112,93 @@ export function CoursePage1() {
     useEffect(() => {
         setCurrentPage(1);
     }, [selectedCategory, selectedLevel, selectedPriceRange, searchQuery, categoryId]);
+
+    const handleEnrollClick = async (course: any) => {
+        // Map the external course to match what the modal expects
+        const mappedCourse = {
+            ...course,
+            title: `${course.course} - ${course.level}`,
+            category: course.course,
+            subCategory: course.level,
+            price: "0",
+            syllabusModules: []
+        };
+        setSelectedCourse(mappedCourse);
+        setShowEnrollModal(true);
+
+        try {
+            // Fetch batch details, branch details, and visibility settings concurrently
+            const [batchRes, branchRes, visibilityRes] = await Promise.all([
+                erpCourseApi.fetchExternalERPBatchDetails(course.courseId, course.levelId),
+                erpCourseApi.fetchExternalERPBranchDetails(),
+                erpCourseApi.getBatchVisibilities()
+            ]);
+
+            let branchMap = new Map();
+            if (branchRes.ok && branchRes.data?.success && Array.isArray(branchRes.data.data)) {
+                branchRes.data.data.forEach((branch: any) => {
+                    branchMap.set(branch.compId, branch.branchName);
+                });
+            }
+
+            if (batchRes.ok && batchRes.data?.success && Array.isArray(batchRes.data.data)) {
+                const uniqueBranchNames = new Set<string>();
+
+                const visMap = new Map();
+                if (visibilityRes.ok && visibilityRes.data?.success && Array.isArray(visibilityRes.data.data)) {
+                    visibilityRes.data.data.forEach((v: any) => {
+                        if (v.erpBatchId) visMap.set(v.erpBatchId, v.isVisible);
+                    });
+                }
+
+                const mappedBatches = batchRes.data.data
+                    .filter((b: any) => {
+                        const batchId = b.batchId?.toString();
+                        if (!batchId) return true;
+                        return visMap.get(batchId) !== false; // Filter out explicitly hidden batches
+                    })
+                    .map((b: any) => {
+                    let locationNames = ["Online / Center"];
+                    if (b.applTo && typeof b.applTo === 'string') {
+                        const compIds = b.applTo.split(',');
+                        locationNames = compIds.map((id: string) => branchMap.get(id.trim())).filter(Boolean);
+                        if (locationNames.length === 0) locationNames = ["Online / Center"];
+                    }
+
+                    locationNames.forEach((name: string) => uniqueBranchNames.add(name));
+
+                    return {
+                        _id: b.batchId?.toString() || Math.random().toString(),
+                        startDate: b.stDate || b.syStDate || "TBD",
+                        dayTiming: b.batch || "Standard Timing",
+                        examAttempt: b.attempt || b.acr || "N/A",
+                        language: "English",
+                        mode: (b.batchType || "").toLowerCase() === "offline" ? "Face to Face" : (b.batchType || "").toLowerCase() === "online" ? "Live Online" : "Face to Face", // Map to tab mode based on batchType
+                        location: locationNames, // Map to actual branch names array
+                        batchId: b.batchId?.toString(),
+                        attemptId: b.attemptId?.toString(),
+                        courseId: b.course?.toString(),
+                        levelId: b.level?.toString(),
+                        categories: [course.course] // Match course category so it passes the filter
+                    };
+                });
+
+                setBatches(mappedBatches);
+
+                // Update dropdown with branches that actually have batches
+                if (uniqueBranchNames.size > 0) {
+                    setBranches(Array.from(uniqueBranchNames).map(name => ({ name })));
+                } else {
+                    setBranches([{ name: "Online / Center" }]);
+                }
+            } else {
+                setBatches([]);
+            }
+        } catch (err) {
+            console.error("Failed to fetch batch/branch details", err);
+            setBatches([]);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-muted/30 via-white to-muted/20">
@@ -116,23 +218,7 @@ export function CoursePage1() {
                             </p>
                         </div>
 
-                        {/* View Toggle */}
-                        <div className="hidden md:flex items-center gap-2 bg-muted/50 rounded-lg p-1">
-                            <button
-                                onClick={() => setViewMode("grid")}
-                                className={`p-2 rounded transition-all ${viewMode === "grid" ? "bg-white shadow-sm" : "hover:bg-white/50"
-                                    }`}
-                            >
-                                <Grid3x3 className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode("list")}
-                                className={`p-2 rounded transition-all ${viewMode === "list" ? "bg-white shadow-sm" : "hover:bg-white/50"
-                                    }`}
-                            >
-                                <List className="w-4 h-4" />
-                            </button>
-                        </div>
+
                     </div>
 
                     {/* Modern Search & Filter Bar */}
@@ -150,15 +236,6 @@ export function CoursePage1() {
                                         placeholder="Search for CA, CS, CMA courses, instructors, topics..."
                                         className="flex-1 bg-transparent focus:outline-none text-sm text-foreground placeholder:text-muted-foreground"
                                     />
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setShowFilters(!showFilters)}
-                                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted rounded-lg text-xs text-muted-foreground hover:text-foreground transition-all flex items-center gap-1"
-                                        >
-                                            {showFilters ? <X className="w-3 h-3" /> : <SlidersHorizontal className="w-3 h-3" />}
-                                            <span className="hidden sm:inline">{showFilters ? "Hide" : "Filters"}</span>
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -261,30 +338,6 @@ export function CoursePage1() {
                                     </div>
                                 </div>
 
-                                {/* Price Range */}
-                                <div className="mb-2">
-                                    <h3 className="text-xs font-semibold text-slate-500/80 mb-4 block uppercase tracking-wider">Price Range</h3>
-                                    <div className="space-y-1.5">
-                                        {[
-                                            { id: "all", label: "All Prices", icon: "💰" },
-                                            { id: "under25k", label: "Under ₹25K", icon: "💵" },
-                                            { id: "25k-35k", label: "₹25K - ₹35K", icon: "💴" },
-                                            { id: "above35k", label: "Above ₹35K", icon: "💎" },
-                                        ].map((range) => (
-                                            <button
-                                                key={range.id}
-                                                onClick={() => setSelectedPriceRange(range.id)}
-                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center gap-3 ${selectedPriceRange === range.id
-                                                    ? "bg-primary/5 text-primary font-medium"
-                                                    : "hover:bg-slate-50 text-slate-600"
-                                                    }`}
-                                            >
-                                                <span className="text-sm leading-none">{range.icon}</span>
-                                                <span>{range.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
 
                             {/* Popular Filters */}
@@ -349,8 +402,11 @@ export function CoursePage1() {
                                     </div>
 
                                     <div className="mt-6 pt-4 border-t border-border/50">
-                                        <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium shadow-md">
-                                            View Details
+                                        <Button
+                                            onClick={() => handleEnrollClick(course)}
+                                            className="w-full bg-primary hover:bg-primary/90 text-white font-medium shadow-md"
+                                        >
+                                            Enroll
                                         </Button>
                                     </div>
                                 </div>
@@ -422,6 +478,12 @@ export function CoursePage1() {
                 course={selectedCourse}
                 batches={batches}
                 branches={branches}
+            />
+
+            {/* Meritto Form Modal */}
+            <MerittoFormModal
+                isOpen={showMerittoModal}
+                onClose={() => setShowMerittoModal(false)}
             />
         </div>
     );

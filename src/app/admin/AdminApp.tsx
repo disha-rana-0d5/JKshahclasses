@@ -34,7 +34,9 @@ import { ProductCategoryManagement } from "./pages/ProductCategoryManagement";
 import { ProductSubCategoryManagement } from "./pages/ProductSubCategoryManagement";
 import { ProductAttributeManagement } from "./pages/ProductAttributeManagement";
 import { ERPCoursesManagement } from "./pages/ERPCoursesManagement";
-
+import TimeTableManagement from "./pages/TimeTableManagement";
+import { AdmissionsManagement } from "./pages/AdmissionsManagement";
+import ErpEnquiriesManagement from "./pages/ErpEnquiriesManagement";
 import { Button } from "../components/ui/button";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -48,11 +50,16 @@ const PlaceholderPage = ({ title }: { title: string }) => (
 );
 
 export function AdminApp() {
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const defaultRoute = user?.role === 'timetable_manager' ? 'timetables' : 'dashboard';
+
     return (
         <AdminLayout>
             <Routes>
-                <Route path="/" element={<Navigate to="dashboard" replace />} />
+                <Route path="/" element={<Navigate to={defaultRoute} replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="erp-enquiries" element={<ErpEnquiriesManagement />} />
                 <Route path="courses" element={<CourseManagement />} />
                 <Route path="faqs" element={<CourseFAQs />} />
                 <Route path="testimonials" element={<CourseTestimonials />} />
@@ -76,10 +83,10 @@ export function AdminApp() {
                 <Route path="product-subcategories" element={<ProductSubCategoryManagement />} />
                 <Route path="product-attributes" element={<ProductAttributeManagement />} />
                 <Route path="erp-courses" element={<ERPCoursesManagement />} />
-
-
+                <Route path="timetables" element={<TimeTableManagement />} />
                 <Route path="faculty" element={<FacultyManagement />} />
                 <Route path="users" element={<UserManagement />} />
+                <Route path="admissions" element={<AdmissionsManagement />} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="content" element={<LandingPageManagement />} />
                 <Route path="content/footer" element={<FooterManagement />} />

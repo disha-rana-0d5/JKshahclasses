@@ -5,7 +5,7 @@ const courseSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a course title'],
         trim: true,
-        maxlength: [100, 'Title cannot be more than 100 characters']
+        maxlength: [255, 'Title cannot be more than 255 characters']
     },
     description: {
         type: String,
@@ -228,11 +228,23 @@ const courseSchema = new mongoose.Schema({
         type: String,
         trim: true,
         default: ""
+    },
+    slug: {
+        type: String,
+        trim: true,
+        unique: true,
+        sparse: true
     }
 }, {
     timestamps: true
 });
 
 // Create course slug from the title
+courseSchema.pre('save', function(next) {
+    if (!this.slug && this.title) {
+        this.slug = this.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    }
+    next();
+});
 
 module.exports = mongoose.model('Course', courseSchema);

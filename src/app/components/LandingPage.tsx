@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { BookOpen, GraduationCap, TrendingUp, Users, Award, Star, Play, ArrowRight, CheckCircle2, Trophy, Clock, Target, Zap, Shield, Calendar, MapPin, Video, FileText, Headphones, Volume2, VolumeX, Download, Book, Filter } from "lucide-react";
+import { BookOpen, GraduationCap, TrendingUp, Users, Award, Star, Play, ArrowRight, CheckCircle2, Trophy, Clock, Target, Zap, Shield, Calendar, MapPin, Video, FileText, Headphones, Volume2, VolumeX, Download, Book, Filter, ChevronDown } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { BranchEnquiryModal } from "./modals/BranchEnquiryModal";
 import { BatchEnrollmentModal } from "./modals/BatchEnrollmentModal";
@@ -52,6 +52,7 @@ export function LandingPage() {
     const bannerVideoRef = useRef<HTMLVideoElement>(null);
     const [alumniWorkAt, setAlumniWorkAt] = useState<any[]>([]);
     const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+    const [expandedFaqIndex, setExpandedFaqIndex] = useState<number | null>(null);
 
     // Calculate trending courses
     const allActiveCourses = courses.filter(c => c.status === "Active");
@@ -77,8 +78,36 @@ export function LandingPage() {
     const visibleCategories = sortedCategories.map(c => c.name).filter(Boolean);
 
     useEffect(() => {
-        document.title = "JK Shah Classes - India's Leading CA Coaching";
-    }, []);
+        if (content) {
+            if (content.metaTitle) {
+                document.title = content.metaTitle;
+            } else {
+                document.title = "JK Shah Classes";
+            }
+
+            if (content.metaDescription) {
+                let metaDescription = document.querySelector('meta[name="description"]');
+                if (!metaDescription) {
+                    metaDescription = document.createElement('meta');
+                    metaDescription.setAttribute('name', 'description');
+                    document.head.appendChild(metaDescription);
+                }
+                metaDescription.setAttribute('content', content.metaDescription);
+            }
+
+            if (content.metaKeywords) {
+                let metaKeywords = document.querySelector('meta[name="keywords"]');
+                if (!metaKeywords) {
+                    metaKeywords = document.createElement('meta');
+                    metaKeywords.setAttribute('name', 'keywords');
+                    document.head.appendChild(metaKeywords);
+                }
+                metaKeywords.setAttribute('content', content.metaKeywords);
+            }
+        } else {
+            document.title = "JK Shah Classes";
+        }
+    }, [content]);
 
     useEffect(() => {
         const loadPageData = () => {
@@ -205,8 +234,24 @@ export function LandingPage() {
         </div>
     );
 
+    const faqSchema = content?.faqs?.list?.length > 0 ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": content.faqs.list.map((faq: any) => ({
+            "@type": "Question",
+            "name": faq.question,
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer
+            }
+        }))
+    } : null;
+
     return (
         <div className="flex flex-col min-h-screen">
+            {faqSchema && (
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+            )}
             <main>
                 {/* About Section - Attractive Banner Style */}
                 {content.aboutSection && (
@@ -565,7 +610,7 @@ export function LandingPage() {
                                             <CarouselItem key={course._id} className="pl-6 md:basis-1/2 lg:basis-1/3 h-full">
                                                 <div
                                                     className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all group border border-border cursor-pointer flex flex-col h-full"
-                                                    onClick={() => navigate(`/course/${generateSlug(course.title)}`)}
+                                                    onClick={() => navigate(`/course/${course.slug || generateSlug(course.title)}`)}
                                                 >
                                                     <div
                                                         className="relative aspect-[3/2] overflow-hidden shrink-0"
@@ -623,7 +668,7 @@ export function LandingPage() {
                                                                 className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90 text-white cursor-pointer"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    navigate(`/course/${generateSlug(course.title)}`);
+                                                                    navigate(`/course/${course.slug || generateSlug(course.title)}`);
                                                                 }}
                                                             >
                                                                 Know More
@@ -1254,6 +1299,52 @@ export function LandingPage() {
                         </div>
                     </div>
                 </section>
+
+                {/* FAQ Section */}
+                {content?.faqs?.list?.length > 0 && (
+                    <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50 border-t border-border">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-foreground inline-block relative">
+                                    {content.faqs.title || "Frequently Asked Questions"}
+                                    <div className="absolute -bottom-2 left-0 right-0 h-1 bg-primary/20 rounded-full" />
+                                </h2>
+                            </div>
+                            <div className="space-y-4">
+                                {content.faqs.list.map((faq: any, index: number) => (
+                                    <div 
+                                        key={index} 
+                                        className={`bg-white border rounded-xl overflow-hidden transition-all duration-300 ${expandedFaqIndex === index ? 'border-primary/50 shadow-md' : 'border-border hover:border-primary/30'}`}
+                                    >
+                                        <button
+                                            className="w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none"
+                                            onClick={() => setExpandedFaqIndex(expandedFaqIndex === index ? null : index)}
+                                        >
+                                            <span className="font-semibold text-foreground pr-8">{faq.question}</span>
+                                            <ChevronDown 
+                                                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${expandedFaqIndex === index ? 'rotate-180 text-primary' : ''}`} 
+                                            />
+                                        </button>
+                                        <AnimatePresence>
+                                            {expandedFaqIndex === index && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                >
+                                                    <div className="px-6 pb-5 pt-0 text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                                        {faq.answer}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                )}
             </main >
 
             {/* Modals */}

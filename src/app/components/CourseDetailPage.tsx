@@ -495,7 +495,7 @@ export function CourseDetailPage() {
     // 1. Update Title
     // Priority: Course Meta Title > Course Title > SubCat Meta Title > Default
     const pageTitle = course.metaTitle || course.title || subCat?.metaTitle || "JK Shah Classes";
-    document.title = `${pageTitle} | JK Shah Classes`;
+    document.title = `${pageTitle}`;
 
     // 2. Update Meta Description
     let metaDescription = document.querySelector('meta[name="description"]');
@@ -533,7 +533,7 @@ export function CourseDetailPage() {
       ogTitle.setAttribute('property', 'og:title');
       document.head.appendChild(ogTitle);
     }
-    ogTitle.setAttribute('content', `${pageTitle} | JK Shah Classes`);
+    ogTitle.setAttribute('content', `${pageTitle}`);
 
     // 5. Update OG Description
     let ogDescription = document.querySelector('meta[property="og:description"]');
@@ -544,9 +544,37 @@ export function CourseDetailPage() {
     }
     ogDescription.setAttribute('content', descriptionContent);
 
+    // 6. Add Dynamic Course Schema
+    let schemaScript = document.querySelector('script[id="course-schema"]');
+    if (!schemaScript) {
+      schemaScript = document.createElement('script');
+      schemaScript.setAttribute('type', 'application/ld+json');
+      schemaScript.setAttribute('id', 'course-schema');
+      document.head.appendChild(schemaScript);
+    }
+    
+    const courseSchema = {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      "name": course.title,
+      "description": descriptionContent,
+      "provider": {
+        "@type": "EducationalOrganization",
+        "name": "J.K. Shah Classes",
+        "sameAs": "https://jkshahclasses.com/"
+      },
+      "url": window.location.href
+    };
+    
+    schemaScript.textContent = JSON.stringify(courseSchema);
+
     // Cleanup function
     return () => {
-      document.title = "JK Shah Classes - India's Leading CA Coaching";
+      document.title = "JK Shah Classes";
+      const existingSchema = document.querySelector('script[id="course-schema"]');
+      if (existingSchema) {
+        existingSchema.remove();
+      }
     };
   }, [course, categories]);
 
@@ -576,6 +604,25 @@ export function CourseDetailPage() {
       </div>
     );
   }
+
+  // Generate FAQ Schema
+  const faqSchema = course?.faqs && course.faqs.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": course.faqs.flatMap((category: any) => {
+      const topics = category.topics || (category.questions ? [{ questions: category.questions }] : []);
+      return topics.flatMap((topic: any) => 
+        topic.questions.map((faq: any) => ({
+          "@type": "Question",
+          "name": faq.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faq.answer
+          }
+        }))
+      );
+    })
+  } : null;
 
   // Default data for fields that might not be populated yet
   const syllabusModules: SyllabusModule[] = course.syllabusModules?.length > 0
@@ -656,7 +703,7 @@ export function CourseDetailPage() {
               < div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-4" >
                 <Link to="/courses" className="hover:text-primary transition-colors">Courses</Link>
                 <span>/</span>
-                <Link to={`/courses/category/${categories.find(c => c.name === course.category)?._id}`} className="hover:text-primary transition-colors">{course.category}</Link>
+                <Link to={`/courses/${categories.find(c => c.name === course.category)?.slug || generateSlug(course.category || '')}`} className="hover:text-primary transition-colors">{course.category}</Link>
                 <span>/</span>
                 <span className="text-foreground">{course.subCategory}</span>
               </div >
@@ -727,13 +774,15 @@ export function CourseDetailPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                <Button
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white h-11 px-6"
-                  onClick={() => setShowVideoModal(true)}
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Course Overview
-                </Button>
+                {course.videos && course.videos.length > 0 && (
+                  <Button
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white h-11 px-6"
+                    onClick={() => setShowVideoModal(true)}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Course Overview
+                  </Button>
+                )}
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
@@ -918,6 +967,10 @@ export function CourseDetailPage() {
           <div className="absolute -left-20 -top-20 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -right-20 -bottom-20 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-3xl animate-pulse" />
         </div>
+
+        {faqSchema && (
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+        )}
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid lg:grid-cols-12 gap-6 items-stretch">
@@ -1811,7 +1864,7 @@ export function CourseDetailPage() {
                   <CarouselItem key={relatedCourse._id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
                     <div
                       className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all group border border-border cursor-pointer flex flex-col h-full"
-                onClick={() => navigate(`${currentPathPrefix}${generateSlug(relatedCourse.title)}`)}
+                onClick={() => navigate(`${currentPathPrefix}${relatedCourse.slug || generateSlug(relatedCourse.title)}`)}
               >
                 <div className="relative aspect-[3/2] overflow-hidden shrink-0">
                   <ImageWithFallback
@@ -1866,7 +1919,7 @@ export function CourseDetailPage() {
                       className="flex-1 h-8 text-xs bg-primary hover:bg-primary/90 text-white cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`${currentPathPrefix}${generateSlug(relatedCourse.title)}`);
+                        navigate(`${currentPathPrefix}${relatedCourse.slug || generateSlug(relatedCourse.title)}`);
                       }}
                     >
                       Know More

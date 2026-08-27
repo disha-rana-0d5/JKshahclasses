@@ -15,8 +15,12 @@ const protect = async (req, res, next) => {
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Get user from the token
-            req.user = await User.findById(decoded.id).select('-password');
+            if (decoded.id === '000000000000000000000000') {
+                req.user = { _id: '000000000000000000000000', role: 'timetable_manager', name: 'Timetable Manager', email: 'timetablemanager@gmail.com' };
+            } else {
+                // Get user from the token
+                req.user = await User.findById(decoded.id).select('-password');
+            }
 
             next();
         } catch (error) {
@@ -38,4 +42,12 @@ const admin = (req, res, next) => {
     }
 };
 
-module.exports = { protect, admin };
+const timetableManager = (req, res, next) => {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'timetable_manager')) {
+        next();
+    } else {
+        res.status(401).json({ message: 'Not authorized for this action' });
+    }
+};
+
+module.exports = { protect, admin, timetableManager };

@@ -269,8 +269,8 @@ export function HistoryPage() {
             </section>
 
             {/* Our Leadership Team Section */}
-            <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
-                {/* Decorative background elements */}
+            {/* <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white relative overflow-hidden">
+               
                 <div className="absolute top-0 left-0 w-64 h-64 bg-accent/5 rounded-full -ml-32 -mt-32 blur-3xl"></div>
                 <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full -mr-48 -mb-48 blur-3xl"></div>
 
@@ -290,10 +290,10 @@ export function HistoryPage() {
                                 transition={{ duration: 0.5, delay: idx * 0.05 }}
                                 className="group relative flex items-center gap-5 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-500"
                             >
-                                {/* Left Accent Highlight */}
+                              
                                 <div className="absolute left-0 top-1/4 bottom-1/4 w-1.5 bg-accent rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-500 origin-center"></div>
 
-                                {/* Avatar with Glow Effect */}
+                             
                                 <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
                                     <div className="absolute inset-0 bg-accent/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 scale-125"></div>
                                     <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-white shadow-md z-10 bg-slate-100">
@@ -305,7 +305,7 @@ export function HistoryPage() {
                                     </div>
                                 </div>
 
-                                {/* Content */}
+                            
                                 <div className="flex-grow min-w-0">
                                     <h3 className="text-base md:text-lg font-black text-[#373081] mb-1 group-hover:text-accent transition-colors truncate">
                                         {member.name}
@@ -318,7 +318,7 @@ export function HistoryPage() {
                                     </div>
                                 </div>
 
-                                {/* Interactive Indicator */}
+                            
                                 <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-x-2 group-hover:translate-x-0">
                                     <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                                         <div className="w-1.5 h-1.5 bg-accent rounded-full"></div>
@@ -328,7 +328,7 @@ export function HistoryPage() {
                         ))}
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* Our Numbers Speak Banner Section */}
             <section className="py-12 px-4 sm:px-6 lg:px-8">
@@ -364,8 +364,8 @@ export function HistoryPage() {
                                     { value: "43+", label: "Years Of\nexperience" },
                                     { value: "377+", label: "Faculties" },
                                     { value: "10", label: "States" },
-                                    { value: "49", label: "Cities" },
-                                    { value: "124", label: "Face to Face\nCentres" },
+                                    { value: "53", label: "Cities" },
+                                    { value: "146", label: "Face to Face\nCentres" },
                                     { value: "3977+", label: "All Courses Rankers\nSince 2001" },
                                     { value: "515987+", label: "Students Till\nDate" }
                                 ].map((stat, idx) => (

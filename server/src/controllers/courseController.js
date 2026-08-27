@@ -83,6 +83,10 @@ exports.addCourse = async (req, res) => {
             });
         }
 
+        if (!req.body.slug && req.body.title) {
+            req.body.slug = req.body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        }
+
         if (!req.body.image || req.body.image === "") req.body.image = '/uploads/placeholder.png';
         if (!req.body.facultyImage || req.body.facultyImage === "") req.body.facultyImage = '/uploads/placeholder.png';
 
@@ -139,6 +143,10 @@ exports.updateCourse = async (req, res) => {
                 success: false,
                 message: 'Course not found'
             });
+        }
+
+        if (!req.body.slug && req.body.title) {
+            req.body.slug = req.body.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
         }
 
         if (req.body.image === "") req.body.image = '/uploads/placeholder.png';

@@ -13,7 +13,7 @@ import { MerittoFormModal } from "./modals/MerittoFormModal";
 
 export function CoursesPage() {
   const navigate = useNavigate();
-  const { categoryId } = useParams<{ categoryId: string }>();
+  const { categorySlug } = useParams<{ categorySlug?: string }>();
   const { allCourses, allCategories: categories, allLevels: levels } = useCourseContext();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
@@ -54,15 +54,16 @@ export function CoursesPage() {
   }, []);
 
   useEffect(() => {
-    if (categoryId && categories.length > 0) {
-      let currentCat = categories.find(c => c._id === categoryId);
+    const activeIdentifier = categorySlug;
+    if (activeIdentifier && categories.length > 0) {
+      let currentCat = categories.find(c => c._id === activeIdentifier || (c.slug || generateSlug(c.name)) === activeIdentifier);
       if (!currentCat) {
-        const decodedName = decodeURIComponent(categoryId);
+        const decodedName = decodeURIComponent(activeIdentifier);
         currentCat = categories.find(c => c.name.toLowerCase() === decodedName.toLowerCase());
       }
       
       if (currentCat) {
-        document.title = currentCat.metaTitle || `${currentCat.name} Courses | JK Shah Classes`;
+        document.title = currentCat.metaTitle || `${currentCat.name} Courses`;
         
         let metaDescription = document.querySelector('meta[name="description"]');
         if (!metaDescription) {
@@ -78,46 +79,56 @@ export function CoursesPage() {
           ogTitle.setAttribute('property', 'og:title');
           document.head.appendChild(ogTitle);
         }
-        ogTitle.setAttribute("content", currentCat.metaTitle || `${currentCat.name} Courses | JK Shah Classes`);
+        ogTitle.setAttribute("content", currentCat.metaTitle || `${currentCat.name} Courses`);
         
+        let ogDescription = document.querySelector('meta[property="og:description"]');
+        if (!ogDescription) {
+          ogDescription = document.createElement('meta');
+          ogDescription.setAttribute('property', 'og:description');
+          document.head.appendChild(ogDescription);
+        }
+        ogDescription.setAttribute("content", currentCat.metaDescription || "");
+
         return;
       }
     }
     
-    document.title = "Courses | JK Shah Classes";
-  }, [categoryId, categories]);
+    document.title = "Courses";
+  }, [categorySlug, categories]);
 
-  // Redirect if category has no sub-categories
-  useEffect(() => {
-    if (categoryId && categories.length > 0 && allCourses.length > 0) {
-      const currentCat = categories.find(c => c._id === categoryId) ||
-        categories.find(c => c.name.toLowerCase() === decodeURIComponent(categoryId).toLowerCase());
+  // Redirect if category has no sub-categories removed as per request
+  // useEffect(() => {
+  //   const activeIdentifier = categorySlug || categoryId;
+  //   if (activeIdentifier && categories.length > 0 && allCourses.length > 0) {
+  //     const currentCat = categories.find(c => c._id === activeIdentifier || (c.slug || generateSlug(c.name)) === activeIdentifier) ||
+  //       categories.find(c => c.name.toLowerCase() === decodeURIComponent(activeIdentifier).toLowerCase());
 
-      if (currentCat) {
-        const hasSubCategories = categories.some(c => c.parent === currentCat._id);
-        if (!hasSubCategories) {
-          const course = allCourses.find(c => c.category === currentCat.name && c.status === "Active");
-          if (course) {
-            navigate(`/course/${generateSlug(course.title)}`, { replace: true });
-          }
-        }
-      }
-    }
-  }, [categoryId, categories, allCourses, navigate]);
+  //     if (currentCat) {
+  //       const hasSubCategories = categories.some(c => c.parent === currentCat._id);
+  //       if (!hasSubCategories) {
+  //         const course = allCourses.find(c => c.category === currentCat.name && c.status === "Active");
+  //         if (course) {
+  //           navigate(`/course/${course.slug || generateSlug(course.title)}`, { replace: true });
+  //         }
+  //       }
+  //     }
+  //   }
+  // }, [categorySlug, categories, allCourses, navigate]);
 
   const filteredCourses = allCourses.filter(course => {
     if (course.status !== "Active") return false;
 
     // Category filter logic
-    if (categoryId || selectedCategory !== "all") {
+    const activeIdentifier = categorySlug;
+    if (activeIdentifier || selectedCategory !== "all") {
       let activeCatId = selectedCategory !== "all" ? categories.find(c => c.name === selectedCategory)?._id : undefined;
 
-      if (categoryId) {
-        const catById = categories.find(c => c._id === categoryId);
-        if (catById) {
-          activeCatId = catById._id;
+      if (activeIdentifier) {
+        const catByIdOrSlug = categories.find(c => c._id === activeIdentifier || (c.slug || generateSlug(c.name)) === activeIdentifier);
+        if (catByIdOrSlug) {
+          activeCatId = catByIdOrSlug._id;
         } else {
-          const decodedName = decodeURIComponent(categoryId);
+          const decodedName = decodeURIComponent(activeIdentifier);
           const catByName = categories.find(c => c.name.toLowerCase() === decodedName.toLowerCase());
           if (catByName) {
             activeCatId = catByName._id;
@@ -169,7 +180,7 @@ export function CoursesPage() {
   // Reset to first page when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategory, selectedLevel, selectedPriceRange, searchQuery, categoryId]);
+  }, [selectedCategory, selectedLevel, selectedPriceRange, searchQuery, categorySlug]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-muted/30 via-white to-muted/20">
@@ -416,7 +427,7 @@ export function CoursesPage() {
                 <div
                   key={course._id}
                   className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all group border border-border cursor-pointer flex flex-col h-full"
-                  onClick={() => navigate(`/course/${generateSlug(course.title)}`)}
+                  onClick={() => navigate(`/course/${course.slug || generateSlug(course.title)}`)}
                 >
                   <div className="relative aspect-[3/2] overflow-hidden shrink-0">
                     <ImageWithFallback

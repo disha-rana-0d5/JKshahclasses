@@ -94,7 +94,18 @@ exports.getApplications = async (req, res) => {
 // @access  Private/Admin
 exports.exportApplications = async (req, res) => {
     try {
-        const applications = await CareerApplication.find().populate('listingId').sort('-createdAt');
+        const { startDate, endDate } = req.query;
+        let query = {};
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = end;
+            }
+        }
+        const applications = await CareerApplication.find(query).populate('listingId').sort('-createdAt');
         const fields = [
             { label: 'Name', value: 'name' },
             { label: 'Email', value: 'email' },

@@ -28,10 +28,15 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Extract the active page from the path (e.g. /admin/courses -> courses)
     const currentPath = location.pathname.split("/").pop() || "dashboard";
 
-    const menuItems = [
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isTimetableManager = user?.role === 'timetable_manager';
+
+    const menuItems = isTimetableManager ? [
+        { id: "timetables", label: "Timetable Management", icon: BookOpen, path: "timetables" }
+    ] : [
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         {
             id: "courses-group",
@@ -50,7 +55,7 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
                 { id: "timelines", label: "Manage Timelines", path: "timelines" },
                 { id: "career-opps", label: "Career Opportunities", path: "career-opps" },
                 { id: "alumni-work-at", label: "Alumni Work At (Logos)", path: "alumni-work-at" },
-                { id: "erp-courses", label: "ERP Courses", path: "erp-courses" },
+                { id: "timetables", label: "Timetable Management", path: "timetables" },
             ]
 
         },
@@ -63,9 +68,18 @@ export function AdminSidebarContent({ className = "", onNavigate }: AdminSidebar
         //         { id: "product-subcategories", label: "Sub Category", path: "product-subcategories" },
         //         // { id: "product-attributes", label: "Attributes (Subjects)", path: "product-attributes" },
         //         { id: "product-faculty", label: "Faculty", path: "product-faculty" },
-        //         { id: "products", label: "Add Product", path: "products" },
         //     ]
         // },
+        {
+            id: "erp-group",
+            label: "ERP",
+            icon: ClipboardList,
+            subItems: [
+                { id: "erp-courses", label: "ERP Courses", path: "erp-courses" },
+                { id: "admissions", label: "Admissions", path: "admissions" },
+                { id: "erp-enquiries", label: "Enquiries", path: "erp-enquiries" },
+            ]
+        },
         { id: "users", label: "User Management", icon: Users },
         { id: "orders", label: "Orders & Payments", icon: ShoppingCart },
         { id: "alumni", label: "Alumni Management", icon: GraduationCap },

@@ -203,6 +203,14 @@ export function LandingPageManagement() {
                     };
                 }
 
+                // Initialize faqs if missing
+                if (!fetchedContent.faqs) {
+                    fetchedContent.faqs = {
+                        title: 'Frequently Asked Questions',
+                        list: []
+                    };
+                }
+
                 setContent(fetchedContent);
             } else {
                 toast.error("Failed to load content");
@@ -280,6 +288,7 @@ export function LandingPageManagement() {
                     {/* <TabsTrigger className="data-[state=active]:bg-red-600 data-[state=active]:text-white" value="why">Why Us</TabsTrigger> */}
                     <TabsTrigger className="data-[state=active]:bg-red-600 data-[state=active]:text-white" value="testimonials">Stories</TabsTrigger>
                     <TabsTrigger className="data-[state=active]:bg-red-600 data-[state=active]:text-white" value="videoCarousel">Videos</TabsTrigger>
+                    <TabsTrigger className="data-[state=active]:bg-red-600 data-[state=active]:text-white" value="faqs">FAQs</TabsTrigger>
                     <TabsTrigger className="data-[state=active]:bg-red-600 data-[state=active]:text-white" value="footer">Footer</TabsTrigger>
                 </TabsList>
 
@@ -983,6 +992,76 @@ export function LandingPageManagement() {
                                     value={content.footerCta.brochureUrl || ""}
                                     onChange={(url) => updateField('footerCta.brochureUrl', url)}
                                 />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* FAQs Section */}
+                <TabsContent value="faqs" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Frequently Asked Questions</CardTitle>
+                            <CardDescription>Manage the FAQs shown at the bottom of the landing page.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Section Title</Label>
+                                <Input
+                                    value={content.faqs?.title || ""}
+                                    onChange={(e) => updateField('faqs.title', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <Label className="text-base font-semibold">Questions and Answers</Label>
+                                <div className="space-y-4">
+                                    {content.faqs?.list?.map((faq: any, index: number) => (
+                                        <div key={index} className="p-4 border rounded-md relative bg-muted/20">
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                className="absolute top-2 right-2 h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => {
+                                                    const newList = [...(content.faqs.list || [])];
+                                                    newList.splice(index, 1);
+                                                    updateField('faqs.list', newList);
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                            <div className="space-y-3 mt-4">
+                                                <div className="space-y-1">
+                                                    <Label className="text-xs">Question {index + 1}</Label>
+                                                    <Input
+                                                        value={faq.question}
+                                                        onChange={(e) => updateField(`faqs.list.${index}.question`, e.target.value)}
+                                                        placeholder="Enter question"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-xs">Answer {index + 1}</Label>
+                                                    <Textarea
+                                                        value={faq.answer}
+                                                        onChange={(e) => updateField(`faqs.list.${index}.answer`, e.target.value)}
+                                                        placeholder="Enter answer"
+                                                        rows={3}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        const newList = [...(content.faqs?.list || []), { question: "", answer: "" }];
+                                        updateField('faqs.list', newList);
+                                    }}
+                                    className="w-full mt-2"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" /> Add FAQ
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

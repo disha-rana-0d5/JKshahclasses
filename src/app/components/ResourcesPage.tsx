@@ -9,7 +9,7 @@ import {
     BookOpen,
     LayoutGrid,
     Clock,
-    Tag,
+    Tag
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { productApi } from "../api/api";

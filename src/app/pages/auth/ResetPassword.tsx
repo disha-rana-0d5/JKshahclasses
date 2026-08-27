@@ -17,7 +17,7 @@ export function ResetPassword() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        document.title = "Reset Password | JK Shah Classes";
+        document.title = "Reset Password";
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export function ResetPassword() {
             if (ok) {
                 setIsSuccess(true);
                 toast.success("Password reset successful!");
-                setTimeout(() => navigate("/login"), 3000);
+                setTimeout(() => window.location.href = "https://new-online.jkshahclasses.com/", 3000);
             } else {
                 toast.error(data.message || "Failed to reset password");
             }

@@ -30,6 +30,8 @@ export function BranchEnquiryManagement() {
     const [enquiries, setEnquiries] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     const fetchEnquiries = async () => {
@@ -87,13 +89,32 @@ export function BranchEnquiryManagement() {
         fetchEnquiries();
     }, []);
 
-    const filteredEnquiries = enquiries.filter(
-        (eq) =>
+    const filteredEnquiries = enquiries.filter((eq) => {
+        const matchesSearch =
             eq.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             eq.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             eq.branchName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            eq.course.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+            eq.course.toLowerCase().includes(searchTerm.toLowerCase());
+
+        let matchesDate = true;
+        if (startDate || endDate) {
+            const eqDate = new Date(eq.createdAt);
+            eqDate.setHours(0, 0, 0, 0);
+
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                if (eqDate < start) matchesDate = false;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(0, 0, 0, 0);
+                if (eqDate > end) matchesDate = false;
+            }
+        }
+
+        return matchesSearch && matchesDate;
+    });
 
     const handleExport = () => {
         if (filteredEnquiries.length === 0) {
@@ -159,17 +180,41 @@ export function BranchEnquiryManagement() {
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-border shadow-sm">
-                <div className="relative w-full sm:w-96">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search by name, email, branch or course..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                    />
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border border-border shadow-sm">
+                <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto flex-1">
+                    <div className="relative w-full sm:max-w-md xl:max-w-xs">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by name, email, branch or course..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <Input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-[140px]"
+                            title="Start Date"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <Input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-[140px]"
+                            title="End Date"
+                        />
+                        {(startDate || endDate) && (
+                            <Button variant="ghost" size="sm" onClick={() => { setStartDate(""); setEndDate(""); }} className="px-2 text-muted-foreground hover:text-foreground">
+                                Clear
+                            </Button>
+                        )}
+                    </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full xl:w-auto shrink-0 justify-end mt-2 xl:mt-0">
                     <Button variant="outline" onClick={handleExport} disabled={isLoading || filteredEnquiries.length === 0}>
                         <Download className="w-4 h-4 mr-2" />
                         Export

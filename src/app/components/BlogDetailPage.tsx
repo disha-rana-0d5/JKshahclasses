@@ -24,7 +24,7 @@ export function BlogDetailPage() {
 
         // Update Title
         const baseTitle = blog.metaTitle || blog.title || "JK Shah Classes Blog";
-        document.title = `${baseTitle} | JK Shah Classes`;
+        document.title = `${baseTitle}`;
 
         // Update Meta Description
         let metaDescription = document.querySelector('meta[name="description"]');
@@ -51,9 +51,29 @@ export function BlogDetailPage() {
         }
         metaKeywords.setAttribute('content', blog.metaKeywords || "");
 
+        // Update OG Title
+        let ogTitle = document.querySelector('meta[property="og:title"]');
+        if (!ogTitle) {
+            ogTitle = document.createElement('meta');
+            ogTitle.setAttribute('property', 'og:title');
+            document.head.appendChild(ogTitle);
+        }
+        ogTitle.setAttribute('content', `${baseTitle}`);
+
+        // Update OG Description
+        let ogDescription = document.querySelector('meta[property="og:description"]');
+        if (!ogDescription) {
+            ogDescription = document.createElement('meta');
+            ogDescription.setAttribute('property', 'og:description');
+            document.head.appendChild(ogDescription);
+        }
+        ogDescription.setAttribute('content', descriptionContent);
+
+
+
         // Cleanup function to reset title when leaving the page
         return () => {
-            document.title = "JK Shah Classes - India's Leading CA Coaching";
+            document.title = "JK Shah Classes";
         };
     }, [blog]);
 

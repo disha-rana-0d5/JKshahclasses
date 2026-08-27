@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Navigation } from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { lazy, Suspense } from "react";
@@ -43,6 +43,10 @@ const TestSeriesPage = lazy(() => import("./components/TestSeriesPage").then(m =
 const BookDetailPage = lazy(() => import("./components/BookDetailPage").then(m => ({ default: m.BookDetailPage })));
 const AnnouncementsPage = lazy(() => import("./components/AnnouncementsPage").then(m => ({ default: m.AnnouncementsPage })));
 const CheckoutPage = lazy(() => import("./components/CheckoutPage").then(m => ({ default: m.CheckoutPage })));
+const TimetablesPage = lazy(() => import("./components/TimetablesPage").then(m => ({ default: m.TimetablesPage })));
+const PaymentSuccessPage = lazy(() => import("./components/PaymentSuccessPage").then(m => ({ default: m.PaymentSuccessPage })));
+const PaymentStatusPage = lazy(() => import("./components/PaymentStatusPage").then(m => ({ default: m.PaymentStatusPage })));
+import { NotFoundPage } from "./components/NotFoundPage";
 
 import { CourseProvider } from "./admin/context/CourseContext";
 
@@ -65,6 +69,50 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    // Dynamic Canonical URL update on client-side navigation
+    const canonicalUrl = `${window.location.origin}${location.pathname}`;
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      document.head.appendChild(link);
+    }
+    link.setAttribute('href', canonicalUrl);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Add Global EducationalOrganization Schema with Dynamic URL
+    let orgSchemaScript = document.querySelector('script[id="org-schema"]');
+    if (!orgSchemaScript) {
+      orgSchemaScript = document.createElement('script');
+      orgSchemaScript.setAttribute('type', 'application/ld+json');
+      orgSchemaScript.setAttribute('id', 'org-schema');
+      document.head.appendChild(orgSchemaScript);
+    }
+    
+    const orgSchema = {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "J.K. Shah Classes",
+      "alternateName": "JK Shah Classes",
+      "url": window.location.href, // <--- DYNAMIC URL BASED ON CURRENT PAGE
+      "logo": "https://jkshahclasses.com/logo.png",
+      "description": "J.K. Shah Classes offers coaching and professional education programs including CA, CS, CMA, CFA, ACCA and commerce courses.",
+      "telephone": "+91 9757111333",
+      "email": "info@jkshahclasses.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Mumbai",
+        "addressRegion": "Maharashtra",
+        "postalCode": "400069",
+        "addressCountry": "IN"
+      },
+      "areaServed": "India"
+    };
+    
+    orgSchemaScript.textContent = JSON.stringify(orgSchema);
+  }, [location.pathname]);
 
   // Check if we are in admin or auth routes to hide standard nav/footer
   const hideNavFooter = location.pathname.startsWith("/admin") || location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
@@ -82,8 +130,9 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/courses" element={<CoursesPage />} />
+                <Route path="/courses2" element={<CoursesPage />} />
                 <Route path="/courses1" element={<CoursePage1 />} />
-                <Route path="/courses/category/:categoryId" element={<CoursesPage />} />
+                <Route path="/courses/:categorySlug" element={<CoursesPage />} />
                 <Route path="/course/:slug" element={<CourseDetailPage />} />
                 <Route path="/courses/india/:slug" element={<CourseDetailPage />} />
                 <Route path="/courses/foreign/:slug" element={<CourseDetailPage />} />
@@ -119,6 +168,7 @@ export default function App() {
                 <Route path="/terms" element={<TermsAndConditionsPage />} />
                 <Route path="/refund-policy" element={<RefundPolicyPage />} />
                 <Route path="/resources" element={<ResourcesPage />} />
+                <Route path="/resources/timetables" element={<TimetablesPage />} />
                 <Route path="/resources/books" element={<BooksPage />} />
                 <Route path="/resources/test-series" element={<TestSeriesPage />} />
                 <Route path="/resources/test-series/:slug" element={<BookDetailPage />} />
@@ -129,20 +179,26 @@ export default function App() {
                     <CheckoutPage />
                   </ProtectedRoute>
                 } />
+                <Route path="/cart" element={<CheckoutPage />} />
+                <Route path="/payment-success" element={<PaymentSuccessPage />} />
+                <Route path="/paymentstatus" element={<PaymentStatusPage />} />
 
-                {/* Auth Routes */}
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
+                {/* Fallback routing */}
+                {/* <Route path="/login" element={<LoginPage />} /> */}
+                {/* <Route path="/signup" element={<SignupPage />} /> */}
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/*" element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["admin", "timetable_manager"]}>
                     <AdminApp />
                   </ProtectedRoute>
                 } />
+
+                {/* Catch-all route to display 404 page */}
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
           </main>

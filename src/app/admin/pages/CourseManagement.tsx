@@ -61,6 +61,7 @@ export function CourseManagement() {
     // Form State
     const [formData, setFormData] = useState<Partial<Course>>({
         title: "",
+        slug: "",
         description: "",
         overview: "",
         category: "",
@@ -224,6 +225,7 @@ export function CourseManagement() {
         setEditingCourse(null);
         setFormData({
             title: "",
+            slug: "",
             description: "",
             overview: "",
             category: categories[0]?.name || "",
@@ -577,7 +579,20 @@ export function CourseManagement() {
                                             <Input
                                                 id="title"
                                                 value={formData.title}
-                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                                onChange={(e) => {
+                                                    const newTitle = e.target.value;
+                                                    const generatedSlug = newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+                                                    setFormData({ ...formData, title: newTitle, slug: generatedSlug });
+                                                }}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="slug">Course URL Slug</Label>
+                                            <Input
+                                                id="slug"
+                                                value={formData.slug}
+                                                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9\-]+/g, '') })}
                                                 required
                                             />
                                         </div>
@@ -634,7 +649,7 @@ export function CourseManagement() {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="price">Current Price (₹)</Label>
                                             <Input
@@ -662,6 +677,15 @@ export function CourseManagement() {
                                                 value={formData.duration}
                                                 onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                                                 required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="batchInfo">Next Batch Starts</Label>
+                                            <Input
+                                                id="batchInfo"
+                                                placeholder="e.g. June 2026"
+                                                value={formData.batchInfo}
+                                                onChange={(e) => setFormData({ ...formData, batchInfo: e.target.value })}
                                             />
                                         </div>
                                     </div>
@@ -752,16 +776,52 @@ export function CourseManagement() {
                                         />
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="overview">Course Overview</Label>
-                                        <Textarea
-                                            id="overview"
-                                            value={formData.overview}
-                                            onChange={(e) => setFormData({ ...formData, overview: e.target.value })}
-                                            rows={6}
-                                            placeholder="Detailed overview for the course detail page..."
-                                        />
-                                    </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="overview">Course Overview</Label>
+                                            <Textarea
+                                                id="overview"
+                                                value={formData.overview}
+                                                onChange={(e) => setFormData({ ...formData, overview: e.target.value })}
+                                                rows={6}
+                                                placeholder="Detailed overview for the course detail page..."
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg bg-slate-50">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="rating">Course Rating (e.g., 4.8)</Label>
+                                                <Input
+                                                    id="rating"
+                                                    type="number"
+                                                    step="0.1"
+                                                    min="0"
+                                                    max="5"
+                                                    value={formData.rating}
+                                                    onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                                                    placeholder="4.8"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="reviews">Total Reviews</Label>
+                                                <Input
+                                                    id="reviews"
+                                                    type="number"
+                                                    value={formData.reviews}
+                                                    onChange={(e) => setFormData({ ...formData, reviews: Number(e.target.value) })}
+                                                    placeholder="1583"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="enrolledTotal">Total Enrolled Students</Label>
+                                                <Input
+                                                    id="enrolledTotal"
+                                                    type="number"
+                                                    value={formData.enrolledTotal}
+                                                    onChange={(e) => setFormData({ ...formData, enrolledTotal: Number(e.target.value) })}
+                                                    placeholder="4520"
+                                                />
+                                            </div>
+                                        </div>
 
                                     <div className="space-y-4">
                                         <Label>What You'll Learn</Label>

@@ -22,7 +22,7 @@ import {
 import { getPaginationItems } from "../admin/utils/pagination";
 
 export function RankHoldersPage() {
-    const { categories, refreshRankHolders } = useCourseContext();
+    const { allCategories: categories, refreshRankHolders } = useCourseContext();
     const [allRankHolders, setAllRankHolders] = useState<RankHolder[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");

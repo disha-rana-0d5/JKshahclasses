@@ -402,9 +402,19 @@ const landingPageContentSchema = new mongoose.Schema({
             }
         ]
     },
-    metaTitle: { type: String, default: 'JK Shah Classes - India\'s Leading CA Coaching Institute' },
+    metaTitle: { type: String, default: 'JK Shah Classes' },
     metaDescription: { type: String, default: 'JK Shah Classes is India\'s top coaching institute for CA, CS, and CMA. With over 40 years of excellence and 1,850+ All India Rankers.' },
-    metaKeywords: { type: String, default: 'CA Coaching, CS Coaching, CMA Coaching, JK Shah Classes, Professional Courses' }
+    metaKeywords: { type: String, default: 'CA Coaching, CS Coaching, CMA Coaching, JK Shah Classes, Professional Courses' },
+    faqs: {
+        title: { type: String, default: 'Frequently Asked Questions' },
+        list: {
+            type: [{
+                question: { type: String },
+                answer: { type: String }
+            }],
+            default: []
+        }
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('LandingPageContent', landingPageContentSchema);

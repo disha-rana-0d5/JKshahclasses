@@ -13,7 +13,8 @@ import {
     ArrowLeft,
     CheckCircle2,
     Loader2,
-    X
+    X,
+    Share2
 } from "lucide-react";
 import { careerApi } from "../api/api";
 
@@ -35,7 +36,29 @@ export default function CareersPage() {
     });
 
     useEffect(() => {
+        document.title = "Careers at JK Shah Classes | Join India's Leading Education Institute";
+
+        let metaDescription = document.querySelector('meta[name="description"]');
+        if (!metaDescription) {
+            metaDescription = document.createElement('meta');
+            metaDescription.setAttribute('name', 'description');
+            document.head.appendChild(metaDescription);
+        }
+        metaDescription.setAttribute('content', "Explore exciting career opportunities at JK Shah Classes. Join our team of educators and professionals to build a rewarding career in education across India.");
+
+        let metaKeywords = document.querySelector('meta[name="keywords"]');
+        if (!metaKeywords) {
+            metaKeywords = document.createElement('meta');
+            metaKeywords.setAttribute('name', 'keywords');
+            document.head.appendChild(metaKeywords);
+        }
+        metaKeywords.setAttribute('content', "JK Shah Careers, JK Shah Classes Jobs, Careers at JK Shah Classes, Education Jobs India, Teaching Jobs, Faculty Recruitment, Academic Careers, CA Faculty Jobs, CS Faculty Jobs, CMA Faculty Jobs, Corporate Jobs, Education Institute Careers, Join JK Shah Classes, Finance Education Jobs, Commerce Faculty Jobs");
+
         fetchListings();
+
+        return () => {
+            document.title = "JK Shah Classes";
+        };
     }, []);
 
     const fetchListings = async () => {
@@ -110,6 +133,20 @@ export default function CareersPage() {
         setShowApplyModal(true);
     };
 
+    const handleShare = (job, e) => {
+        e.stopPropagation();
+        if (navigator.share) {
+            navigator.share({
+                title: job.title,
+                text: `Check out this job opening for ${job.title} at JK Shah Classes!`,
+                url: window.location.href,
+            }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link copied to clipboard!');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-white pt-24 pb-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -162,6 +199,13 @@ export default function CareersPage() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-4">
+                                                <button
+                                                    className="p-2 text-gray-500 hover:text-[#373081] transition-colors rounded-md hover:bg-gray-100"
+                                                    title="Share Job"
+                                                    onClick={(e) => handleShare(job, e)}
+                                                >
+                                                    <Share2 className="w-5 h-5" />
+                                                </button>
                                                 <button
                                                     className="text-sm font-semibold text-gray-500 hover:text-[#373081] transition-colors"
                                                     onClick={(e) => {

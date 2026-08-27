@@ -119,7 +119,7 @@ export function CartDrawer() {
                                 const token = localStorage.getItem("token");
                                 if (!token) {
                                     toast.error("Please login to proceed to checkout");
-                                    navigate("/login");
+                                    window.location.href = "https://new-online.jkshahclasses.com/";
                                     setIsDrawerOpen(false);
                                     return;
                                 }

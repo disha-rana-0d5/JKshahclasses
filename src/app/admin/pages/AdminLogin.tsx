@@ -22,15 +22,21 @@ export function AdminLogin() {
             const { ok, data } = await authApi.login({ email, password });
 
             if (ok) {
-                if (data.role !== 'admin') {
+                if (data.role !== 'admin' && data.role !== 'timetable_manager') {
                     toast.error("Access denied. Only administrators can log in here.");
                     return;
                 }
                 // Store token in localStorage
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("user", JSON.stringify(data));
-                toast.success("Admin logged in successfully!");
-                navigate("/admin/dashboard");
+                
+                if (data.role === 'timetable_manager') {
+                    toast.success("Timetable Manager logged in successfully!");
+                    navigate("/admin/timetables");
+                } else {
+                    toast.success("Admin logged in successfully!");
+                    navigate("/admin/dashboard");
+                }
             } else {
                 toast.error(data.message || "Invalid credentials");
             }

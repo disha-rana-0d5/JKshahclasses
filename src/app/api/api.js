@@ -496,6 +496,31 @@ export const placementApi = {
         return { ok: response.ok, data: await response.json() };
     },
 
+    async exportPlacements() {
+        const response = await fetch(`${BASE_URL}/placements/export`);
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Placements_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            return { ok: true };
+        }
+        return { ok: false };
+    },
+
+    async bulkUploadPlacements(formData) {
+        const response = await fetch(`${BASE_URL}/placements/bulk`, {
+            method: "POST",
+            body: formData,
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+
     async updatePlacementStatus(id, status) {
         const response = await fetch(`${BASE_URL}/placements/${id}/status`, {
             method: "PATCH",
@@ -738,7 +763,7 @@ export const branchEnquiryApi = {
     async getBranchEnquiries() {
         const response = await fetch(`${BASE_URL}/branch-enquiries`, {
             headers: {
-                Authorization: `Bearer ${localStorage.getItem("adminToken")}`
+                Authorization: `Bearer ${localStorage.getItem("token")}`
             }
         });
         const data = response.headers.get("content-type")?.includes("application/json")
@@ -775,7 +800,7 @@ export const branchEnquiryApi = {
             method: 'PATCH',
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${localStorage.getItem("adminToken")}`
+                Authorization: `Bearer ${localStorage.getItem("token")}`
             },
             body: JSON.stringify({ isRead }),
         });
@@ -788,7 +813,7 @@ export const branchEnquiryApi = {
         const response = await fetch(`${BASE_URL}/branch-enquiries/${id}`, {
             method: 'DELETE',
             headers: {
-                Authorization: `Bearer ${localStorage.getItem("adminToken")}`
+                Authorization: `Bearer ${localStorage.getItem("token")}`
             },
         });
         const data = response.headers.get("content-type")?.includes("application/json")
@@ -1044,13 +1069,180 @@ export const erpCourseApi = {
         });
         return { ok: response.ok, data: await response.json() };
     },
+    async getBatchVisibilities() {
+        const response = await fetch(`${BASE_URL}/erp-batch-visibility`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async saveBatchVisibility(visibilityData) {
+        const response = await fetch(`${BASE_URL}/erp-batch-visibility`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(visibilityData)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
     async fetchExternalERPCourses() {
         const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/list`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
             }
         });
         return { ok: response.ok, data: await response.json() };
+    },
+    async fetchExternalERPBatchDetails(courseId, levelId) {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/batchDetails`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            },
+            body: JSON.stringify({ courseId: courseId.toString(), levelId: levelId.toString() })
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async fetchExternalERPBranchDetails() {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/branchDetails`, {
+            method: 'POST',
+            headers: {
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async fetchExternalERPFeeCategoryDetails() {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/feeCatgDetails`, {
+            method: 'POST',
+            headers: {
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async fetchExternalERPFeeData(params) {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/courses/api/course/feebyclsData`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            },
+            body: JSON.stringify(params)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async initiateEasebuzzPayment(params) {
+        const response = await fetch(`https://edu.jkshahcloud.com:5004/easebuzz/paymentintiatedbystu`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-auth-key': 'jkshah_cloud_secret_auth_live_2025'
+            },
+            body: JSON.stringify(params)
+        });
+        return { ok: response.ok, data: await response.json() };
     }
 };
+
+export const timeTableApi = {
+    async getTimetables(params = {}) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${BASE_URL}/timetables${query ? `?${query}` : ""}`, {
+            cache: 'no-store',
+            headers: {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache"
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async createTimetable(data) {
+        const response = await fetch(`${BASE_URL}/timetables`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async updateTimetable(id, data) {
+        const response = await fetch(`${BASE_URL}/timetables/${id}`, {
+            method: "PUT",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async deleteTimetable(id) {
+        const response = await fetch(`${BASE_URL}/timetables/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async bulkImportTimetables(data) {
+        const response = await fetch(`${BASE_URL}/timetables/bulk`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async uploadPdf(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch(`${BASE_URL}/upload/file`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            },
+            body: formData
+        });
+        return { ok: response.ok, data: await response.json() };
+    }
+};
+
+export const paymentEnquiryApi = {
+    async getEnquiry(stuEnqSno) {
+        const response = await fetch(`${BASE_URL}/payment-enquiry/${stuEnqSno}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async getEnquiryByMobile(mobile) {
+        const response = await fetch(`${BASE_URL}/payment-enquiry/mobile/${mobile}`);
+        return { ok: response.ok, data: await response.json() };
+    },
+    async sendOtp(data) {
+        const response = await fetch(`${BASE_URL}/payment-enquiry/send-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async createEnquiry(data) {
+        const response = await fetch(`${BASE_URL}/payment-enquiry`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        return { ok: response.ok, data: await response.json() };
+    },
+    async getAllEnquiries(token) {
+        const response = await fetch(`${BASE_URL}/payment-enquiry`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        return { ok: response.ok, data: await response.json() };
+    }
+};
+
+export const admissionApi = {};
+

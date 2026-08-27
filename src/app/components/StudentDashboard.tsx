@@ -26,7 +26,7 @@ export function StudentDashboard({ onNavigateToCoursePlayer }: StudentDashboardP
   const user = userStr ? JSON.parse(userStr) : null;
 
   useEffect(() => {
-    document.title = "Student Dashboard | JK Shah Classes";
+    document.title = "Student Dashboard";
     fetchOrders(pagination.page);
   }, [pagination.page]);
 

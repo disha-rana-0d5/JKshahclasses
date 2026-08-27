@@ -156,7 +156,7 @@ export function BookDetailPage() {
         const user = localStorage.getItem("user");
         if (!user) {
             toast.error("Please login to add items to cart");
-            navigate("/login");
+            window.location.href = "https://new-online.jkshahclasses.com/";
             return;
         }
         const variantKey = currentVariant
@@ -206,7 +206,7 @@ export function BookDetailPage() {
         const token = localStorage.getItem("token");
         if (!token) {
             toast.error("Please login to proceed to checkout");
-            navigate("/login");
+            window.location.href = "https://new-online.jkshahclasses.com/";
             return;
         }
 

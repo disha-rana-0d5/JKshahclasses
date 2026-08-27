@@ -16,7 +16,7 @@ export function ForgotPassword() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        document.title = "Forgot Password | JK Shah Classes";
+        document.title = "Forgot Password";
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {

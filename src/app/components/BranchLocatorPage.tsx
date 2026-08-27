@@ -17,7 +17,7 @@ import {
   BookOpen
 } from "lucide-react";
 import { CitySelectorModal } from "./modals/CitySelectorModal";
-import { BranchEnquiryModal } from "./modals/BranchEnquiryModal";
+import { MerittoFormModal } from "./modals/MerittoFormModal";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -101,16 +101,13 @@ const MapUpdater = ({ branches, selectedBranch }: { branches: Branch[], selected
 
   useEffect(() => {
     if (branches.length === 0) return;
-    const bounds = L.latLngBounds([]);
-    let hasCoords = false;
+    
     let selectedCoords = null;
 
     branches.forEach(b => {
-      const coords = extractCoordinates(b.mapUrl);
-      if (coords) {
-        bounds.extend([coords.lat, coords.lng]);
-        hasCoords = true;
-        if (b.id === selectedBranch) {
+      if (b.id === selectedBranch) {
+        const coords = extractCoordinates(b.mapUrl);
+        if (coords) {
           selectedCoords = coords;
         }
       }
@@ -118,8 +115,9 @@ const MapUpdater = ({ branches, selectedBranch }: { branches: Branch[], selected
 
     if (selectedCoords) {
       map.setView([selectedCoords.lat, selectedCoords.lng], 15);
-    } else if (hasCoords) {
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+    } else {
+      // Just show India map by default
+      map.setView([20.5937, 78.9629], 5);
     }
   }, [branches, selectedBranch, map]);
 
@@ -155,6 +153,7 @@ export function BranchLocatorPage() {
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const [enquiryBranchData, setEnquiryBranchData] = useState<{ name: string, courses: string[] }>({ name: "", courses: [] });
   const [nearestBranch, setNearestBranch] = useState<Branch | null>(null);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const branchesPerPage = 5;
 
@@ -198,6 +197,8 @@ export function BranchLocatorPage() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+
           let minDistance = Infinity;
           let closestBranch = null;
 
@@ -224,7 +225,7 @@ export function BranchLocatorPage() {
   }, [branches]);
 
   useEffect(() => {
-    document.title = "Our Branches | JK Shah Classes";
+    document.title = "Our Branches";
   }, []);
 
   const getEmbedUrl = (url: string) => {
@@ -264,6 +265,18 @@ export function BranchLocatorPage() {
     const matchesCity = selectedCity === "all" || branch.city === selectedCity;
     return matchesSearch && matchesCity;
   });
+
+  if (userLocation) {
+    filteredBranches.sort((a, b) => {
+      const coordsA = extractCoordinates(a.mapUrl);
+      const coordsB = extractCoordinates(b.mapUrl);
+      
+      const distA = coordsA ? calculateDistance(userLocation.lat, userLocation.lng, coordsA.lat, coordsA.lng) : Infinity;
+      const distB = coordsB ? calculateDistance(userLocation.lat, userLocation.lng, coordsB.lat, coordsB.lng) : Infinity;
+      
+      return distA - distB;
+    });
+  }
 
   useEffect(() => {
     setCurrentPage(1);
@@ -542,10 +555,20 @@ export function BranchLocatorPage() {
                 <div className="bg-muted/30 rounded-lg border-2 border-border overflow-hidden">
                   {/* Map Placeholder */}
                   <div className="relative h-[600px] bg-gradient-to-br from-muted/50 to-muted/30 z-0">
-                    <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+                    <MapContainer 
+                      center={[20.5937, 78.9629]} 
+                      zoom={4} 
+                      minZoom={3}
+                      maxBounds={[
+                        [6.7535, 68.1623], // South West
+                        [37.0900, 97.3953]  // North East
+                      ]}
+                      maxBoundsViscosity={1.0}
+                      style={{ height: '100%', width: '100%', zIndex: 0 }}
+                    >
                       <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; Google Maps'
+                        url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                       />
                       <MapUpdater branches={filteredBranches} selectedBranch={selectedBranch} />
                       {filteredBranches.map(branch => {
@@ -682,12 +705,9 @@ export function BranchLocatorPage() {
         availableCities={Array.from(new Set(branches.map(b => b.city))).filter(Boolean)}
       />
 
-      <BranchEnquiryModal
+      <MerittoFormModal
         isOpen={isEnquiryModalOpen}
         onClose={() => setIsEnquiryModalOpen(false)}
-        branchName={enquiryBranchData.name}
-        courses={enquiryBranchData.courses}
-        branches={branches}
       />
     </div>
   );

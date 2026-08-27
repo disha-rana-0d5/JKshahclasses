@@ -16,7 +16,8 @@ export function LoginPage() {
     const location = useLocation();
 
     useEffect(() => {
-        document.title = "Login | JK Shah Classes";
+        // Temporary redirect to external portal
+        window.location.href = "https://new-online.jkshahclasses.com/";
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +50,9 @@ export function LoginPage() {
             setLoading(false);
         }
     };
+
+    // Return null or a simple message while redirecting, but keep the original JSX commented out or just hidden?
+    // Actually, just returning the original JSX is fine, the useEffect will redirect immediately anyway.
 
     return (
         <div className="min-h-screen bg-muted flex items-center justify-center p-4">

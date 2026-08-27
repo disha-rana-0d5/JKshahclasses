@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { placementApi } from "../../api/api";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
@@ -18,10 +18,12 @@ import {
     Building2,
     Upload,
     Trash2,
-    Edit2
+    Edit2,
+    Download
 } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Pagination } from "../components/Pagination";
 
 export function PlacementManagement() {
     const [placements, setPlacements] = useState([]);
@@ -30,6 +32,11 @@ export function PlacementManagement() {
     const [isPostJobModalOpen, setIsPostJobModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const fileInputRef = useRef(null);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Post Job Form State
     const [jobForm, setJobForm] = useState({
@@ -51,7 +58,7 @@ export function PlacementManagement() {
     const fetchAdminPlacements = async () => {
         setLoading(true);
         try {
-            const response = await placementApi.getAdminPlacements();
+            const response = await placementApi.getAdminPlacements({ limit: 1000 });
             if (response.ok) {
                 setPlacements(response.data.data);
             }
@@ -107,6 +114,49 @@ export function PlacementManagement() {
         } catch (error) {
             console.error("Delete error:", error);
             toast.error("Server error during deletion");
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const result = await placementApi.exportPlacements();
+            if (result.ok) {
+                toast.success("Placements exported successfully");
+            } else {
+                toast.error("Failed to export placements");
+            }
+        } catch (error) {
+            console.error("Export error:", error);
+            toast.error("Server error during export");
+        }
+    };
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const toastId = toast.loading("Uploading CSV...");
+        try {
+            const response = await placementApi.bulkUploadPlacements(formData);
+            if (response.ok) {
+                toast.success(`Upload successful: ${response.data.updated} updated, ${response.data.created} created`, { id: toastId });
+                fetchAdminPlacements();
+            } else {
+                toast.error(response.data?.message || "Upload failed", { id: toastId });
+                if (response.data?.errors) {
+                    response.data.errors.forEach(err => toast.error(err));
+                }
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast.error("Server error during upload", { id: toastId });
+        } finally {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
 
@@ -169,6 +219,18 @@ export function PlacementManagement() {
         return p.status === statusFilter;
     });
 
+    const totalItems = filteredPlacements.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+    const paginatedPlacements = filteredPlacements.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Reset pagination when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter]);
+
     return (
         <div className="p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -190,6 +252,21 @@ export function PlacementManagement() {
                             </button>
                         ))}
                     </div>
+                    <Button onClick={handleExport} variant="outline" className="flex items-center gap-2">
+                        <Download className="w-4 h-4" />
+                        Export
+                    </Button>
+                    <input
+                        type="file"
+                        accept=".csv"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                    />
+                    <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Import CSV
+                    </Button>
                     <Button onClick={() => { 
                         setEditingId(null); 
                         setJobForm({ 
@@ -233,8 +310,8 @@ export function PlacementManagement() {
                                         <span className="text-sm text-gray-400">Loading placements...</span>
                                     </td>
                                 </tr>
-                            ) : filteredPlacements.length > 0 ? (
-                                filteredPlacements.map((p) => (
+                            ) : paginatedPlacements.length > 0 ? (
+                                paginatedPlacements.map((p) => (
                                     <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 align-top">
                                             <div className="text-sm text-gray-600">
@@ -348,6 +425,19 @@ export function PlacementManagement() {
                         </tbody>
                     </table>
                 </div>
+                
+                {/* Pagination component */}
+                {!loading && filteredPlacements.length > 0 && (
+                    <div className="border-t border-gray-100">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Post Job Modal */}

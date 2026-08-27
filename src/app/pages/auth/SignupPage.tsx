@@ -20,7 +20,7 @@ export function SignupPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        document.title = "Sign Up | JK Shah Classes";
+        document.title = "Sign Up";
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +42,7 @@ export function SignupPage() {
 
             if (ok) {
                 toast.success("Account created successfully! Please sign in.");
-                navigate("/login");
+                window.location.href = "https://new-online.jkshahclasses.com/";
             } else {
                 toast.error(data.message || "Registration failed");
             }

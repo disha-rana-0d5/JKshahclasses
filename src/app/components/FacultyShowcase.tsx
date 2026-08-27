@@ -176,7 +176,7 @@ export function FacultyShowcase() {
   }, []);
 
   useEffect(() => {
-    document.title = "Our Expert Faculty | JK Shah Classes";
+    document.title = "Our Expert Faculty";
   }, []);
 
   useEffect(() => {

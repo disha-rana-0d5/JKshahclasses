@@ -42,7 +42,7 @@ export function CoursePlayerPage() {
   const [showNotes, setShowNotes] = useState(false);
 
   useEffect(() => {
-    document.title = "Course Player | JK Shah Classes";
+    document.title = "Course Player";
   }, []);
 
   const modules = [

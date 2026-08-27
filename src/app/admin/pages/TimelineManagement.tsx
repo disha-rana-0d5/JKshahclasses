@@ -6,6 +6,7 @@ import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Plus, Trash2, Pencil, ImageIcon, Info } from "lucide-react";
 import { useCourseContext, CourseTimeline } from "../context/CourseContext";
+import { categoryApi } from "../../api/api";
 import { ImageUpload } from "../../components/ImageUpload";
 import { toast } from "sonner";
 import {
@@ -29,6 +30,21 @@ export function TimelineManagement() {
     });
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [allCategories, setAllCategories] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchAllCategories = async () => {
+            try {
+                const { ok, data } = await categoryApi.getCategories({ limit: 500 });
+                if (ok && data.success) {
+                    setAllCategories(data.data || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch all categories:", error);
+            }
+        };
+        fetchAllCategories();
+    }, []);
 
     useEffect(() => {
         refreshTimelines({
@@ -38,7 +54,7 @@ export function TimelineManagement() {
     }, [currentPage]);
 
     // All categories (some courses only have a main category without sub-categories)
-    const availableCategories = categories;
+    const availableCategories = allCategories.length > 0 ? allCategories : categories;
 
     const handleOpenAdd = () => {
         setFormData({

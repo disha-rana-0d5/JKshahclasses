@@ -16,7 +16,7 @@ export function Pagination({
     totalItems,
     itemsPerPage
 }: PaginationProps) {
-    if (totalPages <= 1) return null;
+    // Always render to show total entries
 
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);

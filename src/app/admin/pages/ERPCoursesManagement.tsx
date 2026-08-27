@@ -8,6 +8,8 @@ import { Input } from "../../components/ui/input";
 import { useCourseContext } from "../context/CourseContext";
 import { erpCourseApi } from "../../api/api";
 import { toast } from "sonner";
+import { BatchVisibilityModal } from "../components/BatchVisibilityModal";
+import { Settings2 } from "lucide-react";
 
 export function ERPCoursesManagement() {
     const { allCategories } = useCourseContext();
@@ -16,6 +18,8 @@ export function ERPCoursesManagement() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedCourseForBatches, setSelectedCourseForBatches] = useState<any>(null);
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
     const mainCategories = allCategories.filter(c => !c.parent);
     const subCategories = allCategories.filter(c => c.parent);
@@ -219,7 +223,17 @@ export function ERPCoursesManagement() {
                                                     onCheckedChange={(checked) => handleVisibilityChange(course.levelId, checked)}
                                                 />
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right flex items-center justify-end gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSelectedCourseForBatches(course);
+                                                        setIsBatchModalOpen(true);
+                                                    }}
+                                                >
+                                                    <Settings2 className="h-4 w-4 mr-1" /> Manage Batches
+                                                </Button>
                                                 <Button
                                                     size="sm"
                                                     onClick={() => handleSaveMapping(course.levelId)}
@@ -236,6 +250,12 @@ export function ERPCoursesManagement() {
                     </Table>
                 </div>
             </div>
+
+            <BatchVisibilityModal 
+                isOpen={isBatchModalOpen}
+                onClose={() => setIsBatchModalOpen(false)}
+                course={selectedCourseForBatches}
+            />
         </div>
     );
 }

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { LayoutDashboard, LogOut, User as UserIcon, Bell, Settings, ChevronDown, ChevronRight, ChevronUp, Book, Newspaper, Zap, FileText, History, Users, GraduationCap, Briefcase, Heart, Globe } from "lucide-react";
+import { LayoutDashboard, LogOut, User as UserIcon, Bell, Settings, ChevronDown, ChevronRight, ChevronUp, Book, Newspaper, Zap, FileText, History, Users, GraduationCap, Briefcase, Heart, Globe, Calendar } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useCourseContext } from "../admin/context/CourseContext";
 import { useCart } from "../context/CartContext";
@@ -28,7 +28,7 @@ import { generateSlug } from "../admin/utils/slugify";
 
 
 export function Navigation() {
-  const { categories, courses } = useCourseContext();
+  const { allCategories: categories, allCourses: courses } = useCourseContext();
   const { cartCount, setIsDrawerOpen } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -160,18 +160,18 @@ export function Navigation() {
             const course = courses.find(course => course.category === parent.name);
             return {
               name: parent.name,
-              href: course ? `/course/${generateSlug(course.title)}` : `/courses/category/${parent._id}`
+              href: course ? `/course/${course.slug || generateSlug(course.title)}` : `/courses/${parent.slug || generateSlug(parent.name)}`
             };
           }
 
           return {
             name: parent.name,
-            href: `/courses/category/${parent._id}`,
+            href: `/courses/${parent.slug || generateSlug(parent.name)}`,
             children: subCategories.map(child => {
               const course = courses.find(course => course.subCategory === child.name);
               return {
                 name: child.name,
-                href: course ? `/course/${generateSlug(course.title)}` : `/courses/category/${child._id}`
+                href: course ? `/course/${course.slug || generateSlug(course.title)}` : `/courses/${child.slug || generateSlug(child.name)}`
               };
             })
           };
@@ -180,7 +180,7 @@ export function Navigation() {
     { name: "Branches", href: "/branches" },
     {
       name: "Our Achievers",
-      // href: "/ourachievers",
+      href: "/ourachievers",
       children: [
         { name: "Alumni", href: "/alumni" },
         { name: "Hall of Fame", href: "/ourachievers" },
@@ -191,49 +191,57 @@ export function Navigation() {
     { name: "Placement", href: "/placements" },
     // { name: "Careers", href: "/careers", requiresAuth: true },
     // { name: "Blog", href: "/blog" },
-    // {
-    //   name: "Resources",
-    //   href: "/resources",
-    //   isMega: true,
-    //   children: [
-    //     {
-    //       name: "Books & Study Material",
-    //       href: "/resources/books",
-    //       description: "Curated study kits, textbooks, and practice manuals.",
-    //       icon: Book,
-    //       color: "primary",
-    //       isComingSoon: true
-    //     },
-    //     {
-    //       name: "Test Series",
-    //       href: "/resources/test-series",
-    //       description: "All-India mock tests with detailed performance analytics.",
-    //       icon: FileText,
-    //       color: "accent"
-    //     },
-    //     {
-    //       name: "Blogs",
-    //       href: "/blog",
-    //       description: "Expert exam preparation tips and subject updates.",
-    //       icon: Newspaper,
-    //       color: "primary"
-    //     },
-    //     // {
-    //     //   name: "Announcements",
-    //     //   href: "/resources/announcements",
-    //     //   description: "Important exam notifications and class schedules.",
-    //     //   icon: Bell,
-    //     //   color: "accent"
-    //     // },
-    //     {
-    //       name: "Free Resources",
-    //       href: "/resources/free",
-    //       description: "Downloadable notes, charts, and video tutorials.",
-    //       icon: Zap,
-    //       color: "primary"
-    //     }
-    //   ]
-    // },
+    {
+      name: "Resources",
+      href: "/resources",
+      isMega: true,
+      children: [
+        {
+          name: "Timetables",
+          href: "/resources/timetables",
+          description: "View schedules for your branch location.",
+          icon: Calendar,
+          color: "primary"
+        },
+        {
+          name: "Books & Study Material",
+          href: "/resources/books",
+          description: "Curated study kits, textbooks, and practice manuals.",
+          icon: Book,
+          color: "primary",
+          isComingSoon: true
+        },
+        {
+          name: "Test Series",
+          href: "/resources/test-series",
+          description: "All-India mock tests with detailed performance analytics.",
+          icon: FileText,
+          color: "accent",
+          isComingSoon: true
+        },
+        {
+          name: "Blogs",
+          href: "/blog",
+          description: "Expert exam preparation tips and subject updates.",
+          icon: Newspaper,
+          color: "primary"
+        },
+        {
+          name: "Announcements",
+          href: "/resources/announcements",
+          description: "Important exam notifications and class schedules.",
+          icon: Bell,
+          color: "accent"
+        },
+        // {
+        //   name: "Free Resources",
+        //   href: "/resources/free",
+        //   description: "Downloadable notes, charts, and video tutorials.",
+        //   icon: Zap,
+        //   color: "primary"
+        // }
+      ]
+    },
     // { name: "Test Series", href: "/test-series" },
   ];
 
@@ -342,6 +350,7 @@ export function Navigation() {
                           {item.children.map((child: any) => (
                             <DropdownMenuItem
                               key={child.name}
+                              disabled={child.isComingSoon}
                               onClick={() => !child.isComingSoon && navigate((child as any).requiresAuth && !isAuthenticated ? "/login" : child.href)}
                               className={`flex items-start gap-4 p-3 rounded-xl transition-all group ${child.isComingSoon ? "opacity-60 cursor-not-allowed" : "hover:bg-muted/50 focus:bg-muted/50 cursor-pointer"}`}
                             >
@@ -427,7 +436,7 @@ export function Navigation() {
 
               {!isAuthenticated ? (
                 <>
-                  <Link to="/login">
+                  <a href="https://new-online.jkshahclasses.com/">
                     <Button
                       variant="outline"
                       size="sm"
@@ -435,7 +444,7 @@ export function Navigation() {
                     >
                       Login
                     </Button>
-                  </Link>
+                  </a>
                   {/* <Link to="/signup">
                     <Button
                       size="sm"
@@ -710,7 +719,7 @@ export function Navigation() {
               <div className="pt-2 pb-1 space-y-1.5 border-t border-border/50 mt-2">
                 {!isAuthenticated ? (
                   <>
-                    <Link to="/login" onClick={handleNavClick}>
+                    <a href="https://new-online.jkshahclasses.com/" onClick={handleNavClick}>
                       <Button
                         variant="outline"
                         size="sm"
@@ -718,7 +727,7 @@ export function Navigation() {
                       >
                         Login
                       </Button>
-                    </Link>
+                    </a>
                     <Link to="/signup" onClick={handleNavClick}>
                       <Button
                         size="sm"

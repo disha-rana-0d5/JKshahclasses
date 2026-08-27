@@ -16,6 +16,8 @@ export function CareerApplicationManagement() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [exportLoading, setExportLoading] = useState(false);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     useEffect(() => {
         fetchApplications();
@@ -36,7 +38,7 @@ export function CareerApplicationManagement() {
     const handleExport = async () => {
         setExportLoading(true);
         try {
-            const response = await careerApi.exportApplications();
+            const response = await careerApi.exportApplications(startDate, endDate);
             if (response.ok) toast.success("Export successful");
         } catch (error) {
             toast.error("Export failed");
@@ -65,14 +67,33 @@ export function CareerApplicationManagement() {
                     <h1 className="text-2xl font-bold text-gray-800">Career Applications</h1>
                     <p className="text-sm text-gray-500">View candidates who applied for job openings</p>
                 </div>
-                <button
-                    onClick={handleExport}
-                    disabled={exportLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 text-sm font-semibold"
-                >
-                    {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                    Export CSV
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <input 
+                            type="date" 
+                            value={startDate} 
+                            onChange={(e) => setStartDate(e.target.value)} 
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-primary focus:border-primary outline-none"
+                            title="Start Date"
+                        />
+                        <span className="text-gray-500 text-sm">to</span>
+                        <input 
+                            type="date" 
+                            value={endDate} 
+                            onChange={(e) => setEndDate(e.target.value)} 
+                            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-primary focus:border-primary outline-none"
+                            title="End Date"
+                        />
+                    </div>
+                    <button
+                        onClick={handleExport}
+                        disabled={exportLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 text-sm font-semibold"
+                    >
+                        {exportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                        Export CSV
+                    </button>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -112,7 +133,18 @@ export function CareerApplicationManagement() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
-                                            <a href={app.resumeUrl?.startsWith('http') ? app.resumeUrl : `${FRONTEND_URL}${app.resumeUrl}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20">
+                                            <a href={(() => {
+                                                if (!app.resumeUrl) return '#';
+                                                try {
+                                                    if (app.resumeUrl.startsWith('http')) {
+                                                        const urlObj = new URL(app.resumeUrl);
+                                                        return `https://jkshahclasses.com${urlObj.pathname}${urlObj.search}`;
+                                                    }
+                                                    return `https://jkshahclasses.com${app.resumeUrl.startsWith('/') ? '' : '/'}${app.resumeUrl}`;
+                                                } catch (e) {
+                                                    return app.resumeUrl;
+                                                }
+                                            })()} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary/20">
                                                 <FileText className="w-3.5 h-3.5" /> View
                                             </a>
                                             <button

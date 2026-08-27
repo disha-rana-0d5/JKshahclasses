@@ -26,8 +26,8 @@ export function CollegeSection() {
                 { value: "43+", label: " years of experience" },
                 { value: "377+", label: " faculties" },
                 { value: "10", label: "States" },
-                { value: "49", label: "cities" },
-                { value: "124", label: "Face to Face Centres" },
+                { value: "53", label: "cities" },
+                { value: "146", label: "Face to Face Centres" },
                 { value: "3977+", label: "Rankers (since 2001)" },
             ]
         },

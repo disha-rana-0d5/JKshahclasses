@@ -23,6 +23,9 @@ const alumniWorkAtRoutes = require('./routes/alumniWorkAtRoutes');
 const productRoutes = require('./routes/productRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const erpCourseMappingRoutes = require('./routes/erpCourseMappingRoutes');
+const erpBatchVisibilityRoutes = require('./routes/erpBatchVisibilityRoutes');
+const timetableRoutes = require('./routes/timetableRoutes');
+const paymentEnquiryRoutes = require('./routes/paymentEnquiryRoutes');
 const path = require('path');
 const fs = require('fs');
 const Blog = require('./models/Blog');
@@ -40,16 +43,92 @@ connectDB();
 
 const app = express();
 
+// Redirect www to non-www
+app.use((req, res, next) => {
+    if (req.headers.host && req.headers.host.startsWith('www.')) {
+        const newHost = req.headers.host.replace(/^www\./, '');
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        return res.redirect(301, protocol + '://' + newHost + req.originalUrl);
+    }
+    next();
+});
+
+// 301 Redirects for SEO
+const seoRedirects = {
+    // CA
+    '/course/ca-online-classes-foundation-to-final-all-in-one-place': '/course/chartered-accountant',
+    '/course/chartered-accountant-ca': '/course/chartered-accountant',
+    // ACCA
+    '/course/acca-course-fees-duration-career-path-explained': '/course/acca-full-course',
+    '/course/association-of-chartered-certified-accountants-acca': '/course/acca-full-course',
+    // CFA
+    '/course/cfa-course-build-your-career-in-investment-banking-finance': '/course/chartered-financial-analyst-cfa',
+    // US CPA
+    '/course/us-cpa-course-your-path-to-a-global-accounting-career': '/course/certified-public-accountant-us-cpa',
+    // CMA USA
+    '/course/cma-usa-course-fees-salary-career-growth-in-india': '/course/certified-management-accountant-cma-usa',
+    
+    // Duplicates from previous tasks
+    '/course/company-secretary-cs': '/course/company-secretary',
+    
+    // HTTP Redirects from sheet
+    '/our-director.php': '/about/history',
+    '/chartered-accountancy.php': '/course/chartered-accountant',
+    '/company-secretary.php': '/course/company-secretary',
+    '/fyjc-syjc.php': '/course/11th-12th-commerce',
+    '/acca_new.php': '/course/acca-full-course',
+    '/announcement/IndianContractAct1872.pdf': '/resources/announcements',
+    '/franchise/images/pdf/JKSCFB.pdf': '/careers',
+    '/courses/cma-usa': '/course/certified-management-accountant-cma-usa',
+    '/course/cma-india': '/course/cost-and-management-accountant-cma-india',
+    '/courses/category/6970686ce0787cd6beb58b0e': '/',
+    '/courses/category/6970686ce0787cd6beb58b0f': '/',
+    '/courses/category/69b14893fc885049b61de463': '/'
+};
+
+const getCanonicalCourseUrl = (slug) => {
+    const rawUrl = `/course/${slug}`;
+    return seoRedirects[rawUrl] || rawUrl;
+};
+
+app.use((req, res, next) => {
+    // Only redirect if path exactly matches (ignoring trailing slash is handled by express, but we check req.path)
+    // Strip trailing slash for matching unless it's just '/'
+    let path = req.path;
+    if (path.length > 1 && path.endsWith('/')) {
+        path = path.slice(0, -1);
+    }
+    
+    const redirectUrl = seoRedirects[path];
+    if (redirectUrl) {
+        const queryString = Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : '';
+        return res.redirect(301, redirectUrl + queryString);
+    }
+    next();
+});
+
 // Helper to inject meta tags into HTML
-const injectMeta = (html, { title, description, keywords }) => {
+const injectMeta = (html, { title, description, keywords, url, image, type }) => {
     let res = html;
-    if (title) res = res.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+    if (title) {
+        res = res.replace(/<title>.*?<\/title>/, `<title>${title}</title>`);
+        if (!res.includes('property="og:title"')) {
+            res = res.replace('</head>', `<meta property="og:title" content="${title}" />\n</head>`);
+        } else {
+            res = res.replace(/<meta property="og:title" content=".*?" \/?>/, `<meta property="og:title" content="${title}" />`);
+        }
+    }
 
     if (description) {
         if (res.includes('name="description"')) {
             res = res.replace(/<meta name="description" content=".*?" \/?>/, `<meta name="description" content="${description}" />`);
         } else {
             res = res.replace('</head>', `<meta name="description" content="${description}" />\n</head>`);
+        }
+        if (!res.includes('property="og:description"')) {
+            res = res.replace('</head>', `<meta property="og:description" content="${description}" />\n</head>`);
+        } else {
+            res = res.replace(/<meta property="og:description" content=".*?" \/?>/, `<meta property="og:description" content="${description}" />`);
         }
     }
 
@@ -60,6 +139,36 @@ const injectMeta = (html, { title, description, keywords }) => {
             res = res.replace('</head>', `<meta name="keywords" content="${keywords}" />\n</head>`);
         }
     }
+
+    if (url) {
+        if (!res.includes('property="og:url"')) {
+            res = res.replace('</head>', `<meta property="og:url" content="${url}" />\n</head>`);
+        } else {
+            res = res.replace(/<meta property="og:url" content=".*?" \/?>/, `<meta property="og:url" content="${url}" />`);
+        }
+        if (!res.includes('rel="canonical"')) {
+            res = res.replace('</head>', `<link rel="canonical" href="${url}" />\n</head>`);
+        } else {
+            res = res.replace(/<link rel="canonical" href=".*?" \/?>/, `<link rel="canonical" href="${url}" />`);
+        }
+    }
+
+    if (image) {
+        if (!res.includes('property="og:image"')) {
+            res = res.replace('</head>', `<meta property="og:image" content="${image}" />\n</head>`);
+        } else {
+            res = res.replace(/<meta property="og:image" content=".*?" \/?>/, `<meta property="og:image" content="${image}" />`);
+        }
+    }
+
+    if (type) {
+        if (!res.includes('property="og:type"')) {
+            res = res.replace('</head>', `<meta property="og:type" content="${type}" />\n</head>`);
+        } else {
+            res = res.replace(/<meta property="og:type" content=".*?" \/?>/, `<meta property="og:type" content="${type}" />`);
+        }
+    }
+
     return res;
 };
 
@@ -371,14 +480,19 @@ const generateHomeHTML = (content, trendingCourses = [], faculties = []) => {
                 <section class="trending-courses">
                     <h2>Trending Courses</h2>
                     <div class="course-list">
-                        ${trendingCourses.map(c => `
+                        ${trendingCourses.map(c => {
+                            const cslug = c.slug || c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                            const canonicalUrl = getCanonicalCourseUrl(cslug);
+                            return `
                             <article class="course-card">
-                                <h3>${c.title}</h3>
-                                <p>${c.category} ${c.level ? `| ${c.level}` : ''}</p>
-                                <p>Rating: ${c.rating} | Price: ₹${c.price}</p>
-                                <p>${c.duration} | ${c.facultyName}</p>
+                                <a href="${canonicalUrl}">
+                                    <h3>${c.title}</h3>
+                                    <p>${c.category} ${c.level ? `| ${c.level}` : ''}</p>
+                                    <p>Rating: ${c.rating} | Price: ₹${c.price}</p>
+                                    <p>${c.duration} | ${c.facultyName}</p>
+                                </a>
                             </article>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </section>
             ` : ''}
@@ -488,6 +602,19 @@ const generateHomeHTML = (content, trendingCourses = [], faculties = []) => {
                     </div>
                 </footer>
             ` : ''}
+
+            <nav class="site-navigation">
+                <h2>Quick Links</h2>
+                <ul>
+                    <li><a href="/courses">All Courses</a></li>
+                    <li><a href="/branches">Branches</a></li>
+                    <li><a href="/ourachievers">Our Achievers</a></li>
+                    <li><a href="/placements">Placement</a></li>
+                    <li><a href="/resources">Resources</a></li>
+                    <li><a href="/blog">Blog</a></li>
+                    <li><a href="/about/history">Our History</a></li>
+                </ul>
+            </nav>
         </main>
     `;
 };
@@ -523,7 +650,12 @@ app.use('/api/alumni-work-at', alumniWorkAtRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/erp-course-mappings', erpCourseMappingRoutes);
-
+app.use('/api/erp-batch-visibility', erpBatchVisibilityRoutes);
+app.use('/api/timetables', timetableRoutes);
+app.use('/api/admissions', require('./routes/admissionRoutes'));
+app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/payment-enquiries', paymentEnquiryRoutes);
+app.use('/api/payment-enquiry', paymentEnquiryRoutes); // singular alias used by frontend
 // Static folder for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -546,9 +678,12 @@ app.get('/', async (req, res) => {
         let html = fs.readFileSync(indexPath, 'utf8');
         if (content) {
             html = injectMeta(html, {
-                title: content.metaTitle || "JK Shah Classes - India's Leading CA Coaching Institute",
+                title: content.metaTitle || "JK Shah Classes",
                 description: content.metaDescription || "JK Shah Classes is India's top coaching institute for CA, CS, and CMA.",
-                keywords: content.metaKeywords || ""
+                keywords: content.metaKeywords || "",
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: "/favicon.png",
+                type: "website"
             });
             html = injectBody(html, generateHomeHTML(content, trendingCourses, faculties));
         }
@@ -570,11 +705,16 @@ app.get('/blog/:slug', async (req, res) => {
             html = injectMeta(html, {
                 title: blog.metaTitle || `${blog.title} | JK Shah Classes`,
                 description: blog.metaDescription || (blog.description?.replace(/<[^>]*>?/gm, '').substring(0, 160) || ""),
-                keywords: blog.metaKeywords || ""
+                keywords: blog.metaKeywords || "",
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: blog.image || "/favicon.png",
+                type: "article"
             });
             html = injectBody(html, generateBlogHTML(blog));
+            res.send(html);
+        } else {
+            res.status(404).send(html);
         }
-        res.send(html);
     } catch (error) {
         console.error('Blog SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
@@ -584,10 +724,24 @@ app.get('/blog/:slug', async (req, res) => {
 app.get(['/course/:slug', '/courses/india/:slug', '/courses/foreign/:slug'], async (req, res) => {
     try {
         const { slug } = req.params;
+        const generateSlug = (text) => {
+            if (!text) return '';
+            return text.toLowerCase().trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        };
+
         const titlePattern = slug.replace(/-/g, ' ');
-        const course = await Course.findOne({
+        let course = await Course.findOne({
             title: { $regex: new RegExp(`^${titlePattern}$`, 'i') }
         });
+
+        if (!course) {
+            const allCourses = await Course.find({ status: "Active" });
+            course = allCourses.find(c => generateSlug(c.title) === slug || c.slug === slug || c._id.toString() === slug);
+        }
 
         const indexPath = path.join(distPath, 'index.html');
         if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
@@ -595,16 +749,144 @@ app.get(['/course/:slug', '/courses/india/:slug', '/courses/foreign/:slug'], asy
         let html = fs.readFileSync(indexPath, 'utf8');
         if (course) {
             const category = await Category.findOne({ name: course.subCategory });
+            
+            const cslug = course.slug || course.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const canonicalPath = getCanonicalCourseUrl(cslug);
+            const canonicalUrl = `https://jkshahclasses.com${canonicalPath}`;
+
+            const breadcrumbSchema = {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {
+                        "@type": "ListItem",
+                        "position": 1,
+                        "name": "Home",
+                        "item": "https://jkshahclasses.com/"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 2,
+                        "name": "Courses",
+                        "item": "https://jkshahclasses.com/courses"
+                    },
+                    {
+                        "@type": "ListItem",
+                        "position": 3,
+                        "name": course.title,
+                        "item": canonicalUrl
+                    }
+                ]
+            };
+            const schemaScript = `<script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>`;
+            html = html.replace('</head>', `${schemaScript}\n</head>`);
+
             html = injectMeta(html, {
                 title: course.metaTitle || (category && category.metaTitle) || `${course.title} | JK Shah Classes`,
                 description: course.metaDescription || (category && category.metaDescription) || (course.description?.replace(/<[^>]*>?/gm, '').substring(0, 160) || ""),
-                keywords: course.metaKeywords || (category && category.metaKeywords) || ""
+                keywords: course.metaKeywords || (category && category.metaKeywords) || "",
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: course.image || "/favicon.png",
+                type: "website"
             });
             html = injectBody(html, generateCourseHTML(course));
+            res.send(html);
+        } else {
+            res.status(404).send(html);
+        }
+    } catch (error) {
+        console.error('Course SEO error:', error);
+        res.sendFile(path.join(distPath, 'index.html'));
+    }
+});
+
+app.get(['/courses/:categorySlug', '/courses'], async (req, res) => {
+    try {
+        const { categorySlug } = req.params;
+        let category;
+
+        const activeIdentifier = categorySlug;
+
+        if (activeIdentifier) {
+            if (activeIdentifier.match(/^[0-9a-fA-F]{24}$/)) {
+                category = await Category.findById(activeIdentifier);
+            } else {
+                const decodedName = decodeURIComponent(activeIdentifier);
+                category = await Category.findOne({
+                    $or: [
+                        { slug: decodedName },
+                        { name: { $regex: new RegExp(`^${decodedName}$`, 'i') } }
+                    ]
+                });
+            }
+            if (!category) {
+                return res.redirect(301, '/courses');
+            }
+        }
+
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) return res.status(404).send('Frontend build not found');
+
+        let html = fs.readFileSync(indexPath, 'utf8');
+        
+        // Fetch courses for schema
+        let courseQuery = { status: "Active" };
+        if (category) {
+            courseQuery.$or = [
+                { category: category.name },
+                { subCategory: category.name }
+            ];
+        }
+        const courses = await Course.find(courseQuery).sort({ category: 1 });
+        
+        const uniqueCourses = new Map();
+        courses.forEach(c => {
+            const cslug = c.slug || c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const canonicalPath = getCanonicalCourseUrl(cslug);
+            if (!uniqueCourses.has(canonicalPath)) {
+                uniqueCourses.set(canonicalPath, canonicalPath);
+            }
+        });
+
+        const itemListElement = Array.from(uniqueCourses.values()).map((canonicalPath, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "url": `https://jkshahclasses.com${canonicalPath}`
+        }));
+
+        if (itemListElement.length > 0) {
+            const itemListSchema = {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                "itemListElement": itemListElement
+            };
+            const schemaScript = `<script type="application/ld+json">${JSON.stringify(itemListSchema)}</script>`;
+            html = html.replace('</head>', `${schemaScript}\n</head>`);
+        }
+
+        if (category) {
+            html = injectMeta(html, {
+                title: category.metaTitle || `${category.name} Courses | JK Shah Classes`,
+                description: category.metaDescription || category.description?.replace(/<[^>]*>?/gm, '').substring(0, 160) || `Explore ${category.name} courses at JK Shah Classes.`,
+                keywords: category.metaKeywords || `${category.name}, CA Coaching, CS Coaching, CMA Coaching`,
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: category.image || "/favicon.png",
+                type: "website"
+            });
+        } else {
+            // General courses page fallback
+            html = injectMeta(html, {
+                title: `Courses | JK Shah Classes`,
+                description: `Explore professional certification programs designed for success at JK Shah Classes.`,
+                keywords: `CA, CS, CMA, Coaching, Courses`,
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: "/favicon.png",
+                type: "website"
+            });
         }
         res.send(html);
     } catch (error) {
-        console.error('Course SEO error:', error);
+        console.error('Category SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
     }
 });
@@ -620,7 +902,10 @@ app.get('/branches', async (req, res) => {
             html = injectMeta(html, {
                 title: "Our Branches | JK Shah Classes",
                 description: content.branchPage?.header?.description || "Find a JK Shah Classes branch near you. With over 35+ branches pan India.",
-                keywords: "CA Coaching Branches, JK Shah Classes Locations, commerce coaching centers"
+                keywords: "CA Coaching Branches, JK Shah Classes Locations, commerce coaching centers",
+                url: `https://${req.get('host')}${req.originalUrl}`,
+                image: "/favicon.png",
+                type: "website"
             });
             html = injectBody(html, generateBranchLocatorHTML(content));
         }
@@ -648,16 +933,31 @@ app.get('/branch/:slug', async (req, res) => {
                 html = injectMeta(html, {
                     title: branch.metaTitle || `${branch.name} | JK Shah Classes`,
                     description: branch.metaDescription || `Visit JK Shah Classes ${branch.name} at ${branch.address}. Expert faculty for CA, CS, and CMA coaching.`,
-                    keywords: branch.metaKeywords || `${branch.name}, CA Coaching in ${branch.city}, commerce classes ${branch.city}`
+                    keywords: branch.metaKeywords || `${branch.name}, CA Coaching in ${branch.city}, commerce classes ${branch.city}`,
+                    url: `https://${req.get('host')}${req.originalUrl}`,
+                    image: branch.image || "/favicon.png",
+                    type: "website"
                 });
                 html = injectBody(html, generateBranchDetailHTML(branch, batches));
+                res.send(html);
+                return;
             }
         }
-        res.send(html);
+        res.status(404).send(html);
     } catch (error) {
         console.error('Branch detail SEO error:', error);
         res.sendFile(path.join(distPath, 'index.html'));
     }
+});
+
+// Handle Easebuzz POST webhook redirect
+app.post('/paymentstatus', (req, res) => {
+    // Easebuzz might send data in the body or query. Combine them.
+    const combinedData = { ...req.query, ...req.body };
+    const queryStr = new URLSearchParams(combinedData).toString();
+
+    // Redirect browser to the React GET route
+    res.redirect(302, `/paymentstatus?${queryStr}`);
 });
 
 // Static files
@@ -665,7 +965,23 @@ app.use(express.static(distPath));
 
 // Final Fallback
 app.get(/^(?!\/api).+/, (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const knownStaticRoutes = [
+        '/', '/login', '/signup', '/forgot-password', '/alumni', '/ourachievers',
+        '/placements', '/test-series', '/privacy-policy', '/terms-and-conditions',
+        '/refund-policy', '/resources/timetables', '/courses', '/branches',
+        '/resources', '/resources/announcements', '/checkout', '/cart',
+        '/payment-success', '/paymentstatus', '/privacy', '/terms',
+        '/about/history', '/about/csr', '/faculty', '/careers', '/blog',
+        '/live-sessions', '/student-dashboard', '/profile', '/course-player'
+    ];
+    
+    const isKnownPrefix = ['/admin', '/student', '/reset-password', '/resources/books', '/resources/test-series'].some(prefix => req.path.startsWith(prefix));
+
+    if (knownStaticRoutes.includes(req.path) || isKnownPrefix) {
+        res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+        res.status(404).sendFile(path.join(distPath, 'index.html'));
+    }
 });
 
 const PORT = +process.env.PORT || 5000;

@@ -19,7 +19,7 @@ import {
 import { Button } from "./ui/button";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { landingPageApi, batchApi, courseApi } from "../api/api";
-import { BranchEnquiryForm } from "./forms/BranchEnquiryForm";
+
 import { toast } from "sonner";
 import { Star, Download, ArrowRight } from "lucide-react";
 import { generateSlug } from "../admin/utils/slugify";
@@ -186,7 +186,7 @@ export function BranchDetailPage() {
 
     useEffect(() => {
         if (branch) {
-            document.title = `${branch.name} | JK Shah Classes`;
+            document.title = `${branch.name}`;
         }
     }, [branch]);
 
@@ -317,19 +317,16 @@ export function BranchDetailPage() {
                             {/* Enquiry Form */}
                             <div className="lg:col-span-5">
                                 <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/20 transform hover:scale-[1.01] transition-transform duration-300">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="bg-primary/10 p-2.5 rounded-lg text-primary">
-                                            <Mail className="w-5 h-5" />
+                                    <div className="flex flex-col items-center justify-center text-center py-4">
+                                        <div className="bg-primary/10 p-4 rounded-full text-primary mb-4">
+                                            <Mail className="w-8 h-8" />
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-gray-900 leading-none mb-1.5">Quick Enquiry</h3>
-                                            <p className="text-xs text-gray-500">Admissions open for upcoming batches</p>
-                                        </div>
+                                        <h3 className="text-2xl font-bold text-gray-900 leading-none mb-3">Interested in this branch?</h3>
+                                        <p className="text-sm text-gray-500 mb-6">Admissions are currently open for upcoming batches. Send a quick enquiry to get all the details.</p>
+                                        <Button size="lg" className="bg-primary hover:bg-primary/90 text-white w-full max-w-xs font-bold shadow-lg" onClick={() => setEnquireOpen(true)}>
+                                            Enquire Now
+                                        </Button>
                                     </div>
-                                    <BranchEnquiryForm
-                                        branchName={branch.name}
-                                        courses={branch.courses || []}
-                                    />
                                 </div>
                             </div>
                         </div>

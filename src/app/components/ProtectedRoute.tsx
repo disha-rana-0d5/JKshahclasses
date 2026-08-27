@@ -14,13 +14,21 @@ export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) 
     if (!token) {
         // Redirect to appropriate login page based on route
         const isAdminRoute = location.pathname.startsWith("/admin");
-        return <Navigate to={isAdminRoute ? "/admin/login" : "/login"} state={{ from: location }} replace />;
+        if (isAdminRoute) {
+            return <Navigate to="/admin/login" state={{ from: location }} replace />;
+        }
+        window.location.href = "https://new-online.jkshahclasses.com/";
+        return null;
     }
 
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         // If user role is not allowed, redirect to appropriate login page to switch account
         const isAdminRoute = location.pathname.startsWith("/admin");
-        return <Navigate to={isAdminRoute ? "/admin/login" : "/login"} replace />;
+        if (isAdminRoute) {
+            return <Navigate to="/admin/login" replace />;
+        }
+        window.location.href = "https://new-online.jkshahclasses.com/";
+        return null;
     }
 
     return <>{children}</>;

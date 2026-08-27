@@ -35,7 +35,7 @@ export function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        document.title = "My Profile | JK Shah Classes";
+        document.title = "My Profile";
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

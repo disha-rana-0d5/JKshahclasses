@@ -1056,7 +1056,7 @@ export function BranchManagement() {
                                         <Input
                                             value={branchFormData.metaTitle || ""}
                                             onChange={(e) => setBranchFormData({ ...branchFormData, metaTitle: e.target.value })}
-                                            placeholder="e.g. CA Coaching in Andheri | JK Shah Classes"
+                                            placeholder="e.g. CA Coaching in Andheri"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1487,7 +1487,7 @@ export function BranchManagement() {
                                         <TableRow>
                                             <TableHead>Start Date</TableHead>
                                             <TableHead>Categories</TableHead>
-                                            <TableHead>Day & Timing</TableHead>
+                                            <TableHead>Batch Name</TableHead>
                                             <TableHead>Mode</TableHead>
                                             <TableHead>Exam Attempt</TableHead>
                                             <TableHead className="text-right">Action</TableHead>

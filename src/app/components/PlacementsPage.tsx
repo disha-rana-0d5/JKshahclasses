@@ -19,7 +19,8 @@ import {
     ExternalLink,
     ChevronRight,
     X,
-    Upload
+    Upload,
+    Share2
 } from "lucide-react";
 
 export function PlacementsPage() {
@@ -59,7 +60,7 @@ export function PlacementsPage() {
     const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
-        document.title = "Placements | JK Shah Classes";
+        document.title = "Placements";
     }, []);
 
     // Debounce Search
@@ -103,7 +104,7 @@ export function PlacementsPage() {
     const handleApply = (placement) => {
         if (!isAuthenticated) {
             toast.error("Please login as a student to apply for jobs");
-            navigate("/login", { state: { from: location.pathname } });
+            window.location.href = "https://new-online.jkshahclasses.com/";
             return;
         }
 
@@ -114,7 +115,7 @@ export function PlacementsPage() {
     const handleViewDetails = (placement) => {
         if (!isAuthenticated) {
             toast.error("Please login to view job details");
-            navigate("/login", { state: { from: location.pathname } });
+            window.location.href = "https://new-online.jkshahclasses.com/";
             return;
         }
         setSelectedPlacement(placement);
@@ -182,6 +183,20 @@ export function PlacementsPage() {
             toast.error("Server error. Please try again later.");
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handleShare = (placement, e) => {
+        e.stopPropagation();
+        if (navigator.share) {
+            navigator.share({
+                title: placement.firmName,
+                text: `Check out this job opening at ${placement.firmName}!`,
+                url: window.location.href,
+            }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            toast.success('Link copied to clipboard!');
         }
     };
 
@@ -265,6 +280,13 @@ export function PlacementsPage() {
                                     </div>
 
                                     <div className="flex gap-3">
+                                        <Button
+                                            variant="outline"
+                                            onClick={(e) => handleShare(p, e)}
+                                            className="h-11 w-11 p-0 flex-shrink-0 text-slate-600 border-slate-200 rounded-xl hover:text-primary"
+                                        >
+                                            <Share2 className="w-4 h-4" />
+                                        </Button>
                                         <Button onClick={() => handleApply(p)} className="flex-1 bg-primary text-white h-11 text-xs font-bold rounded-xl">
                                             Apply Now
                                         </Button>
@@ -347,9 +369,19 @@ export function PlacementsPage() {
                                                 </td>
                                                 <td className="px-6 py-4 align-top text-right relative">
                                                     <div className="flex flex-col gap-2 items-end mb-4">
-                                                        <Button onClick={() => handleApply(p)} className="bg-primary hover:bg-primary/90 text-white text-xs h-9 px-4 w-full md:w-auto">
-                                                            Apply Now
-                                                        </Button>
+                                                        <div className="flex items-center gap-2 w-full md:w-auto">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={(e) => handleShare(p, e)}
+                                                                className="h-9 w-9 text-slate-500 border-slate-200 hover:text-primary"
+                                                            >
+                                                                <Share2 className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button onClick={() => handleApply(p)} className="bg-primary hover:bg-primary/90 text-white text-xs h-9 px-4 w-full md:w-auto">
+                                                                Apply Now
+                                                            </Button>
+                                                        </div>
                                                         {p.applicationFormUrl && (
                                                             <a href={p.applicationFormUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-500 hover:text-primary transition-colors flex items-center gap-1">
                                                                 External Form <ChevronRight className="w-3 h-3" />

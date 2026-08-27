@@ -21,7 +21,7 @@ export function LiveSessionsPage() {
   });
 
   useEffect(() => {
-    document.title = "Live Sessions | JK Shah Classes";
+    document.title = "Live Sessions";
   }, []);
 
   // Debounce Search
